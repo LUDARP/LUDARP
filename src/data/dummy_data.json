@@ -1,0 +1,92 @@
+{
+  "projects": [
+    {
+      "project_id": "PROJ001",
+      "password": "client123",
+      "project_name": "Al Residence",
+      "location": "Kozhikode, Kerala",
+      "start_date": "2025-01-15",
+      "end_date": "2025-10-30",
+      "stage": "Structure",
+      "progress": 42,
+      "total_budget": 2500000
+    }
+  ],
+  "costs": [
+    {
+      "id": "c1",
+      "project_id": "PROJ001",
+      "category": "Materials",
+      "amount": 750000,
+      "date": "2025-02-10"
+    },
+    {
+      "id": "c2",
+      "project_id": "PROJ001",
+      "category": "Labor",
+      "amount": 320000,
+      "date": "2025-03-01"
+    },
+    {
+      "id": "c3",
+      "project_id": "PROJ001",
+      "category": "Miscellaneous",
+      "amount": 45000,
+      "date": "2025-03-15"
+    }
+  ],
+  "updates": [
+    {
+      "id": "u1",
+      "project_id": "PROJ001",
+      "date": "2025-04-10",
+      "description": "Ground floor slab poured. Curing in progress.",
+      "image_url": "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800"
+    },
+    {
+      "id": "u2",
+      "project_id": "PROJ001",
+      "date": "2025-03-28",
+      "description": "Column reinforcement completed on all four sides.",
+      "image_url": "https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=800"
+    },
+    {
+      "id": "u3",
+      "project_id": "PROJ001",
+      "date": "2025-03-10",
+      "description": "Foundation work completed and inspected.",
+      "image_url": ""
+    }
+  ],
+  "stages": [
+    {
+      "project_id": "PROJ001",
+      "stage_name": "Foundation",
+      "completion_percentage": 100
+    },
+    {
+      "project_id": "PROJ001",
+      "stage_name": "Structure",
+      "completion_percentage": 55
+    },
+    {
+      "project_id": "PROJ001",
+      "stage_name": "Finishing",
+      "completion_percentage": 0
+    }
+  ],
+  "documents": [
+    {
+      "id": "d1",
+      "project_id": "PROJ001",
+      "document_name": "Structural Drawing v2",
+      "file_url": "https://example.com/structural.pdf"
+    },
+    {
+      "id": "d2",
+      "project_id": "PROJ001",
+      "document_name": "Approval Certificate",
+      "file_url": "https://example.com/approval.pdf"
+    }
+  ]
+}
