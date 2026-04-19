@@ -1,69 +1,94 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { api } from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import { Navigate } from 'react-router-dom';
 
 const Login = () => {
-  const [projectId, setProjectId] = useState('');
+  const { login, user } = useAuth();
+  const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
+
+  if (user) {
+    if (user.role === 'admin' || user.role === 'engineer' || user.role === 'client' || user.role === 'contractor') return <Navigate to="/" replace />;
+    if (user.role === 'architect') return <Navigate to="/documents" replace />;
+    if (user.role === 'supervisor') return <Navigate to="/updates" replace />;
+  }
 
   const handleLogin = (e) => {
     e.preventDefault();
-    setError('');
-    
-    if (!projectId || !password) {
-      setError('Please enter both Project ID and Password');
+    if (!userId || !password) {
+      setError("Please fill all fields.");
       return;
     }
+    const res = login(userId, password);
+    if (!res.success) {
+      setError(res.error);
+    }
+  };
 
-    setLoading(true);
-    // Fake delay
-    setTimeout(() => {
-      const response = api.login(projectId, password);
-      if (response && response.success && response.data) {
-        localStorage.setItem('ludarp_project_id', response.data.project_id);
-        navigate('/');
-      } else {
-        setError(response?.error || 'Invalid credentials');
-      }
-      setLoading(false);
-    }, 600);
+  const quickLogin = (uid) => {
+    setUserId(uid);
+    setPassword('admin123');
+    const res = login(uid, 'admin123');
+    if (!res.success) setError(res.error);
   };
 
   return (
-    <div className="login-container">
-      <div className="login-card">
-        <h2 className="login-title">LUDARP Client Portal</h2>
-        
-        {error && <div className="error-msg">{error}</div>}
-        
-        <form onSubmit={handleLogin}>
-          <div className="form-group">
-            <label className="form-label">Project ID (Try: PROJ001)</label>
-            <input 
-              type="text" 
-              className="form-input"
-              value={projectId}
-              onChange={(e) => setProjectId(e.target.value)}
-              placeholder="e.g. PROJ001"
-            />
+    <div className="login-split">
+      <div className="login-left">
+        <div className="login-left-content">
+          <div className="login-brand-lg">LUDARP</div>
+          <div className="login-tagline">Precision Engineering. <br/>Transparent Progress.</div>
+        </div>
+      </div>
+      
+      <div className="login-right">
+        <div className="login-card-inner">
+          <h2 className="login-form-title">Welcome Back</h2>
+          <p className="login-form-desc">Sign in to access your LUDARP dashboard.</p>
+          
+          {error && <div className="error-msg" style={{ marginBottom: '20px' }}>{error}</div>}
+
+          <form onSubmit={handleLogin}>
+            <div className="login-input-wrapper">
+              <label className="form-label">User ID / Project ID</label>
+              <input 
+                type="text" 
+                className="login-input" 
+                placeholder="e.g. U001 or PROJ001"
+                value={userId} 
+                onChange={(e) => setUserId(e.target.value)} 
+                required
+              />
+            </div>
+            
+            <div className="login-input-wrapper">
+              <label className="form-label">Password</label>
+              <input 
+                type="password" 
+                className="login-input" 
+                placeholder="••••••••"
+                value={password} 
+                onChange={(e) => setPassword(e.target.value)} 
+                required
+              />
+            </div>
+
+            <button type="submit" className="login-btn">Sign In</button>
+          </form>
+
+          <div className="login-demo-box">
+             <span className="login-demo-title">Quick Role Access (Fast Test)</span>
+             <div className="login-demo-grid">
+                <button type="button" className="login-demo-item" onClick={() => quickLogin('U001')}>Admin <span className="login-demo-val">Login →</span></button>
+                <button type="button" className="login-demo-item" onClick={() => quickLogin('PROJ001')}>Client <span className="login-demo-val">Login →</span></button>
+                <button type="button" className="login-demo-item" onClick={() => quickLogin('U002')}>Engineer <span className="login-demo-val">Login →</span></button>
+                <button type="button" className="login-demo-item" onClick={() => quickLogin('U005')}>Contractor <span className="login-demo-val">Login →</span></button>
+                <button type="button" className="login-demo-item" onClick={() => quickLogin('U003')}>Architect <span className="login-demo-val">Login →</span></button>
+                <button type="button" className="login-demo-item" onClick={() => quickLogin('U004')}>Supervisor <span className="login-demo-val">Login →</span></button>
+             </div>
           </div>
-          <div className="form-group">
-            <label className="form-label">Password (Try: client123)</label>
-            <input 
-              type="password" 
-              className="form-input"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-            />
-          </div>
-          <button type="submit" className="btn" disabled={loading}>
-            {loading ? 'Logging In...' : 'Login Access'}
-          </button>
-        </form>
+        </div>
       </div>
     </div>
   );
