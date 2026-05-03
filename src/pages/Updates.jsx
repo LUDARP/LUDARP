@@ -16,7 +16,9 @@ const Updates = () => {
   const [editingItem, setEditingItem] = useState(null);
   const [isAllSelectedForPost, setIsAllSelectedForPost] = useState(false);
   
-  const [newUpdate, setNewUpdate] = useState({ project_id: '', stage_name: '', description: '', image_url: '', date: new Date().toISOString().split('T')[0] });
+  const [filterTag, setFilterTag] = useState('');
+  
+  const [newUpdate, setNewUpdate] = useState({ project_id: '', stage_name: '', description: '', image_url: '', image_after_url: '', tags: '', date: new Date().toISOString().split('T')[0] });
 
   useEffect(() => {
     let projs = adminApi.getProjects();
@@ -26,7 +28,7 @@ const Updates = () => {
 
   useEffect(() => {
     fetchUpdates();
-  }, [selectedProjectId, user]);
+  }, [selectedProjectId, user, filterTag]);
 
   const fetchUpdates = () => {
     let list = adminApi.getUpdates(selectedProjectId);
@@ -34,6 +36,10 @@ const Updates = () => {
     // Security: Filter list by user project access if 'all' is selected
     if (selectedProjectId === 'all' && user.role !== 'admin') {
       list = list.filter(u => user.project_ids.includes(u.project_id));
+    }
+
+    if (filterTag) {
+      list = list.filter(u => u.tags && u.tags.toLowerCase().includes(filterTag.toLowerCase()));
     }
     
     const enrichedList = list.map(u => {
@@ -47,11 +53,11 @@ const Updates = () => {
   const handleOpenModal = () => {
     setEditingItem(null);
     if (selectedProjectId === 'all' && projects.length > 0) {
-      setNewUpdate({ project_id: projects[0].project_id, stage_name: '', description: '', image_url: '', date: new Date().toISOString().split('T')[0] });
+      setNewUpdate({ project_id: projects[0].project_id, stage_name: '', description: '', image_url: '', image_after_url: '', tags: '', date: new Date().toISOString().split('T')[0] });
       setIsAllSelectedForPost(true);
       fetchStagesForModal(projects[0].project_id);
     } else {
-      setNewUpdate({ project_id: selectedProjectId, stage_name: '', description: '', image_url: '', date: new Date().toISOString().split('T')[0] });
+      setNewUpdate({ project_id: selectedProjectId, stage_name: '', description: '', image_url: '', image_after_url: '', tags: '', date: new Date().toISOString().split('T')[0] });
       setIsAllSelectedForPost(false);
       fetchStagesForModal(selectedProjectId);
     }
@@ -87,6 +93,8 @@ const Updates = () => {
         stage_name: newUpdate.stage_name,
         description: newUpdate.description,
         image_url: newUpdate.image_url,
+        image_after_url: newUpdate.image_after_url,
+        tags: newUpdate.tags,
         date: newUpdate.date,
         added_by: user.user_id
       });
@@ -106,9 +114,9 @@ const Updates = () => {
   const columns = [
     { key: 'date', label: 'Date', render: (row) => new Date(row.date).toLocaleDateString('en-GB') },
     { key: 'projectName', label: 'Project' },
-    { key: 'stage_name', label: 'Stage' },
-    { key: 'description', label: 'Description', render: (row) => row.description.substring(0, 60) + (row.description.length > 60 ? '...' : '') },
-    { key: 'image_url', label: 'Image', render: (row) => row.image_url ? <img src={row.image_url} alt="thumbnail" style={{ height: '30px', width: '40px', objectFit: 'cover', borderRadius: '4px' }} /> : <span style={{color: 'var(--text-muted)'}}>No image</span> },
+    { key: 'tags', label: 'Tags', render: (row) => row.tags ? <span style={{fontSize:'12px', color:'var(--accent)'}}>{row.tags}</span> : '-' },
+    { key: 'description', label: 'Description', render: (row) => row.description.substring(0, 50) + (row.description.length > 50 ? '...' : '') },
+    { key: 'image_url', label: 'Visual', render: (row) => row.image_url ? <img src={row.image_url} alt="thumbnail" style={{ height: '30px', width: '40px', objectFit: 'cover', borderRadius: '4px' }} /> : <span style={{color: 'var(--text-muted)'}}>None</span> },
     { key: 'authorName', label: 'Posted By' }
   ];
 
@@ -116,14 +124,18 @@ const Updates = () => {
     <div>
       <div className="page-header">
         <div>
-          <h1 className="page-title">Site Updates Log</h1>
-          <p className="page-subtitle">Post daily observations and progress pictures.</p>
+          <h1 className="page-title">Structured Documentation</h1>
+          <p className="page-subtitle">Post daily observations, tag items, and track Before/After progress.</p>
         </div>
-        <div style={{ textAlign: 'right', display: 'flex', gap: '16px', alignItems: 'flex-end' }}>
+        <div style={{ textAlign: 'right', display: 'flex', gap: '16px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+           <div>
+             <div className="form-label" style={{ marginBottom: '4px', textAlign: 'left' }}>Search Tags</div>
+             <input type="text" className="form-input" style={{ width: '150px' }} placeholder="#foundation" value={filterTag} onChange={e => setFilterTag(e.target.value)} />
+           </div>
            {projects.length > 1 && (
              <div>
                <div className="form-label" style={{ marginBottom: '4px', textAlign: 'left' }}>Filter by Project</div>
-               <select className="form-select" style={{ width: '250px' }} value={selectedProjectId} onChange={e => setSelectedProjectId(e.target.value)}>
+               <select className="form-select" style={{ width: '200px' }} value={selectedProjectId} onChange={e => setSelectedProjectId(e.target.value)}>
                  <option value="all">All Projects</option>
                  {projects.map(p => <option key={p.project_id} value={p.project_id}>{p.project_name}</option>)}
                </select>
@@ -135,7 +147,7 @@ const Updates = () => {
 
       <DataTable columns={columns} data={updates} onDelete={handleDelete} onEdit={handleOpenEdit} />
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingItem ? 'Edit Site Update' : 'Post Site Update'}>
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingItem ? 'Edit Site Update' : 'Post Structured Update'}>
         <form onSubmit={handleSaveUpdate}>
            <FormInput 
              label="Project" 
@@ -162,19 +174,34 @@ const Updates = () => {
              required 
            />
            <FormInput 
+             label="Tags (Comma separated, e.g. #slab, #inspection)" 
+             type="text" 
+             value={newUpdate.tags || ''} 
+             onChange={e => setNewUpdate({...newUpdate, tags: e.target.value})} 
+           />
+           <FormInput 
              label="Update Notes" 
              type="textarea" 
              value={newUpdate.description} 
              onChange={e => setNewUpdate({...newUpdate, description: e.target.value})} 
              required 
            />
-           <FormInput 
-             label="Image URL (Optional)" 
-             type="text" 
-             placeholder="https://..."
-             value={newUpdate.image_url} 
-             onChange={e => setNewUpdate({...newUpdate, image_url: e.target.value})} 
-           />
+           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+             <FormInput 
+               label="Before Image URL (or single)" 
+               type="text" 
+               placeholder="https://..."
+               value={newUpdate.image_url || ''} 
+               onChange={e => setNewUpdate({...newUpdate, image_url: e.target.value})} 
+             />
+             <FormInput 
+               label="After Image URL (Optional)" 
+               type="text" 
+               placeholder="https://..."
+               value={newUpdate.image_after_url || ''} 
+               onChange={e => setNewUpdate({...newUpdate, image_after_url: e.target.value})} 
+             />
+           </div>
            <div className="modal-actions">
              <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
              <button type="submit" className="btn-primary">{editingItem ? 'Update Post' : 'Publish Update'}</button>

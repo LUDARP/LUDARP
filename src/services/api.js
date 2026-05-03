@@ -3,14 +3,29 @@ import dummyData from '../data/dummy_data.json';
 const DB_KEY = 'ludarp_admin_db';
 const USER_KEY = 'ludarp_admin_user';
 
-export const initDB = () => {
-  if (!localStorage.getItem(DB_KEY)) {
-    localStorage.setItem(DB_KEY, JSON.stringify(dummyData));
+export const initDB = async () => {
+  try {
+    const res = await fetch('/api/sync');
+    const data = await res.json();
+    localStorage.setItem(DB_KEY, JSON.stringify(data));
+    window.dispatchEvent(new Event('storage'));
+  } catch (err) {
+    if (!localStorage.getItem(DB_KEY)) {
+      localStorage.setItem(DB_KEY, JSON.stringify(dummyData));
+    }
   }
 };
 
 const getDB = () => JSON.parse(localStorage.getItem(DB_KEY) || '{}');
-const saveDB = (db) => localStorage.setItem(DB_KEY, JSON.stringify(db));
+const saveDB = (db) => {
+  localStorage.setItem(DB_KEY, JSON.stringify(db));
+  window.dispatchEvent(new Event('storage')); // sync ui locally
+  fetch('/api/sync', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(db)
+  }).catch(e => console.error('DB Sync Failed:', e));
+};
 
 // Weighted progress formula
 const computeOverallProgress = (stages) => {
@@ -32,25 +47,36 @@ export const adminApi = {
   // Auth
   login: (userId, password) => {
     const db = getDB();
+    let loggedInUser = null;
+
     const user = db.users?.find(u => u.user_id === userId && u.password === password);
     if (user) {
       const { password: _, ...userWithoutPassword } = user;
-      localStorage.setItem(USER_KEY, JSON.stringify(userWithoutPassword));
-      return { success: true, data: userWithoutPassword };
+      loggedInUser = userWithoutPassword;
+    } else {
+      const project = db.projects?.find(p => p.project_id === userId && p.client_password === password);
+      if (project) {
+        loggedInUser = {
+          user_id: project.project_id,
+          name: project.client_name,
+          role: 'client',
+          project_ids: [project.project_id],
+          avatar: project.client_name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
+        };
+      }
     }
 
-    // Check for client login (Project ID as username, client_password as password)
-    const project = db.projects?.find(p => p.project_id === userId && p.client_password === password);
-    if (project) {
-      const clientUser = {
-        user_id: project.project_id,
-        name: project.client_name,
-        role: 'client',
-        project_ids: [project.project_id],
-        avatar: project.client_name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
-      };
-      localStorage.setItem(USER_KEY, JSON.stringify(clientUser));
-      return { success: true, data: clientUser };
+    if (loggedInUser) {
+      localStorage.setItem(USER_KEY, JSON.stringify(loggedInUser));
+      if(!db.login_history) db.login_history = [];
+      db.login_history.unshift({
+        user_id: loggedInUser.user_id,
+        name: loggedInUser.name,
+        role: loggedInUser.role,
+        time: new Date().toISOString()
+      });
+      saveDB(db);
+      return { success: true, data: loggedInUser };
     }
 
     return { success: false, error: 'Invalid credentials' };
@@ -58,6 +84,18 @@ export const adminApi = {
   getCurrentUser: () => JSON.parse(localStorage.getItem(USER_KEY)),
   logout: () => localStorage.removeItem(USER_KEY),
   resetDB: () => { localStorage.removeItem(DB_KEY); window.location.reload(); },
+
+  getLoginHistory: () => getDB().login_history || [],
+  getSystemStats: () => {
+    const db = getDB();
+    const today = new Date().toISOString().split('T')[0];
+    const docsToday = (db.documents || []).filter(d => d.uploaded_date && d.uploaded_date.startsWith(today)).length;
+    const updatesToday = (db.updates || []).filter(u => u.date && u.date.startsWith(today)).length;
+    const costsToday = (db.costs || []).filter(c => c.date && c.date.startsWith(today)).length;
+    const logsToday = (db.logs || []).filter(l => l.date && l.date.startsWith(today)).length;
+    
+    return { docsToday, updatesToday, costsToday, logsToday };
+  },
 
   // Projects
   getProjects: () => getDB().projects || [],
@@ -307,6 +345,137 @@ export const adminApi = {
     saveDB(db);
     return true;
   },
+  // Inventory
+  getInventory: (projectId) => {
+    const db = getDB();
+    if (projectId && projectId !== 'all') return db.inventory?.filter(i => i.project_id === projectId) || [];
+    return db.inventory || [];
+  },
+  addInventoryItem: (projectId, data) => {
+    let db = getDB();
+    const newItem = { id: 'inv_' + Date.now(), project_id: projectId, ...data };
+    if(!db.inventory) db.inventory = [];
+    db.inventory.push(newItem);
+    saveDB(db);
+    return newItem;
+  },
+  updateInventoryItem: (itemId, data) => {
+    let db = getDB();
+    const idx = db.inventory?.findIndex(i => i.id === itemId);
+    if (idx > -1) {
+      db.inventory[idx] = { ...db.inventory[idx], ...data, last_updated: new Date().toISOString() };
+      saveDB(db);
+      return true;
+    }
+    return false;
+  },
+  deleteInventoryItem: (itemId) => {
+    let db = getDB();
+    db.inventory = db.inventory?.filter(i => i.id !== itemId) || [];
+    saveDB(db);
+    return true;
+  },
+  // Attendance
+  getAttendance: (projectId) => {
+    const db = getDB();
+    if (projectId && projectId !== 'all') return db.attendance?.filter(a => a.project_id === projectId) || [];
+    return db.attendance || [];
+  },
+  addAttendance: (projectId, data) => {
+    let db = getDB();
+    const newRecord = { id: 'att_' + Date.now(), project_id: projectId, ...data };
+    if(!db.attendance) db.attendance = [];
+    db.attendance.push(newRecord);
+    saveDB(db);
+    return newRecord;
+  },
+  deleteAttendance: (id) => {
+    let db = getDB();
+    db.attendance = db.attendance?.filter(a => a.id !== id) || [];
+    saveDB(db);
+    return true;
+  },
+
+  // Tasks (Planning & Scheduling)
+  getTasks: (projectId) => {
+    const db = getDB();
+    if (projectId && projectId !== 'all') return db.tasks?.filter(t => t.project_id === projectId) || [];
+    return db.tasks || [];
+  },
+  addTask: (projectId, data) => {
+    let db = getDB();
+    const newTask = { id: 'task_' + Date.now(), project_id: projectId, status: 'pending', ...data };
+    if(!db.tasks) db.tasks = [];
+    db.tasks.push(newTask);
+    saveDB(db);
+    return newTask;
+  },
+  updateTask: (taskId, data) => {
+    let db = getDB();
+    const idx = db.tasks?.findIndex(t => t.id === taskId);
+    if (idx > -1) { db.tasks[idx] = { ...db.tasks[idx], ...data }; saveDB(db); return true; }
+    return false;
+  },
+  deleteTask: (taskId) => {
+    let db = getDB();
+    db.tasks = db.tasks?.filter(t => t.id !== taskId) || [];
+    saveDB(db);
+    return true;
+  },
+
+  // Approvals (Workflow)
+  getApprovals: (projectId) => {
+    const db = getDB();
+    if (projectId && projectId !== 'all') return db.approvals?.filter(a => a.project_id === projectId) || [];
+    return db.approvals || [];
+  },
+  addApproval: (projectId, data) => {
+    let db = getDB();
+    const newApproval = { id: 'apr_' + Date.now(), project_id: projectId, status: 'pending', created_at: new Date().toISOString(), ...data };
+    if(!db.approvals) db.approvals = [];
+    db.approvals.push(newApproval);
+    saveDB(db);
+    return newApproval;
+  },
+  updateApproval: (approvalId, data) => {
+    let db = getDB();
+    const idx = db.approvals?.findIndex(a => a.id === approvalId);
+    if (idx > -1) { db.approvals[idx] = { ...db.approvals[idx], ...data, reviewed_at: new Date().toISOString() }; saveDB(db); return true; }
+    return false;
+  },
+
+  // Smart Risk Analysis
+  getRiskAnalysis: () => {
+    const db = getDB();
+    const projects = db.projects || [];
+    const stages = db.stages || [];
+    const updates = db.updates || [];
+    const tasks = db.tasks || [];
+    const alerts = [];
+    projects.forEach(proj => {
+      const projStages = stages.filter(s => s.project_id === proj.project_id);
+      const totalBudget = projStages.reduce((s, st) => s + (st.stage_budget || 0), 0);
+      const totalSpent = projStages.reduce((s, st) => s + (st.stage_spent || 0), 0);
+      if (totalBudget > 0 && (totalSpent / totalBudget) > 0.85)
+        alerts.push({ type: 'budget', severity: 'critical', project: proj.project_name, project_id: proj.project_id, message: `Budget ${((totalSpent/totalBudget)*100).toFixed(0)}% utilized — overrun risk!` });
+      else if (totalBudget > 0 && (totalSpent / totalBudget) > 0.6)
+        alerts.push({ type: 'budget', severity: 'warning', project: proj.project_name, project_id: proj.project_id, message: `Budget ${((totalSpent/totalBudget)*100).toFixed(0)}% utilized — monitor closely.` });
+      const projUpdates = updates.filter(u => u.project_id === proj.project_id);
+      if (projUpdates.length > 0) {
+        const lastUpdate = new Date(Math.max(...projUpdates.map(u => new Date(u.date))));
+        const daysSince = (new Date() - lastUpdate) / (1000 * 60 * 60 * 24);
+        if (daysSince > 7) alerts.push({ type: 'inactivity', severity: 'warning', project: proj.project_name, project_id: proj.project_id, message: `No site updates in ${Math.floor(daysSince)} days — possible delay!` });
+      }
+      if (proj.end_date) {
+        const daysLeft = (new Date(proj.end_date) - new Date()) / (1000 * 60 * 60 * 24);
+        if (daysLeft < 60 && daysLeft > 0) alerts.push({ type: 'deadline', severity: daysLeft < 30 ? 'critical' : 'warning', project: proj.project_name, project_id: proj.project_id, message: `${Math.floor(daysLeft)} days to project deadline!` });
+        if (daysLeft < 0) alerts.push({ type: 'deadline', severity: 'critical', project: proj.project_name, project_id: proj.project_id, message: `Project is OVERDUE by ${Math.abs(Math.floor(daysLeft))} days!` });
+      }
+      const overdueTasks = tasks.filter(t => t.project_id === proj.project_id && t.status !== 'done' && t.due_date && new Date(t.due_date) < new Date());
+      if (overdueTasks.length > 0) alerts.push({ type: 'task', severity: 'warning', project: proj.project_name, project_id: proj.project_id, message: `${overdueTasks.length} task(s) are overdue!` });
+    });
+    return alerts;
+  },
 
   // Users
   getUsers: () => getDB().users || [],
@@ -333,5 +502,299 @@ export const adminApi = {
     db.users = db.users.filter(u => u.user_id !== userId);
     saveDB(db);
     return true;
+  },
+
+  // Invoices & Payments
+  getInvoices: (projectId) => {
+    const db = getDB();
+    if (projectId && projectId !== 'all') return db.invoices?.filter(i => i.project_id === projectId) || [];
+    return db.invoices || [];
+  },
+  addInvoice: (projectId, data) => {
+    let db = getDB();
+    const inv = { id: 'inv_' + Date.now(), project_id: projectId, status: 'unpaid', created_at: new Date().toISOString(), payments: [], ...data };
+    if(!db.invoices) db.invoices = [];
+    db.invoices.push(inv);
+    saveDB(db);
+    return inv;
+  },
+  updateInvoice: (invoiceId, data) => {
+    let db = getDB();
+    const idx = db.invoices?.findIndex(i => i.id === invoiceId);
+    if (idx > -1) { db.invoices[idx] = { ...db.invoices[idx], ...data }; saveDB(db); return true; }
+    return false;
+  },
+  addPayment: (invoiceId, payment) => {
+    let db = getDB();
+    const idx = db.invoices?.findIndex(i => i.id === invoiceId);
+    if (idx > -1) {
+      if(!db.invoices[idx].payments) db.invoices[idx].payments = [];
+      db.invoices[idx].payments.push({ id: 'pay_' + Date.now(), date: new Date().toISOString(), ...payment });
+      const totalPaid = db.invoices[idx].payments.reduce((s, p) => s + Number(p.amount), 0);
+      db.invoices[idx].paid_amount = totalPaid;
+      db.invoices[idx].status = totalPaid >= db.invoices[idx].amount ? 'paid' : totalPaid > 0 ? 'partial' : 'unpaid';
+      saveDB(db);
+      return true;
+    }
+    return false;
+  },
+  deleteInvoice: (invoiceId) => {
+    let db = getDB();
+    db.invoices = db.invoices?.filter(i => i.id !== invoiceId) || [];
+    saveDB(db);
+    return true;
+  },
+
+  // Notifications
+  getNotifications: (userId) => {
+    const db = getDB();
+    return (db.notifications || []).filter(n => n.to === userId || n.to === 'all').sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+  },
+  addNotification: (data) => {
+    let db = getDB();
+    const note = { id: 'notif_' + Date.now(), read: false, created_at: new Date().toISOString(), ...data };
+    if(!db.notifications) db.notifications = [];
+    db.notifications.unshift(note);
+    if (db.notifications.length > 100) db.notifications = db.notifications.slice(0, 100);
+    saveDB(db);
+    return note;
+  },
+  markNotificationRead: (notifId, userId) => {
+    let db = getDB();
+    const idx = db.notifications?.findIndex(n => n.id === notifId);
+    if (idx > -1) { db.notifications[idx].read = true; saveDB(db); }
+  },
+  markAllRead: (userId) => {
+    let db = getDB();
+    (db.notifications || []).forEach(n => { if(n.to === userId || n.to === 'all') n.read = true; });
+    saveDB(db);
+  },
+
+  // Queries / Support Tickets
+  getQueries: (projectId) => {
+    const db = getDB();
+    if (projectId && projectId !== 'all') return db.queries?.filter(q => q.project_id === projectId) || [];
+    return db.queries || [];
+  },
+  addQuery: (data) => {
+    let db = getDB();
+    const newQuery = {
+      id: 'qry_' + Date.now(),
+      status: 'open',
+      priority: 'medium',
+      created_at: new Date().toISOString(),
+      replies: [],
+      ...data
+    };
+    if (!db.queries) db.queries = [];
+    db.queries.unshift(newQuery);
+    // Notify admin
+    adminApi.addNotification({
+      to: 'U001',
+      type: 'query',
+      title: `New Client Query: ${newQuery.subject}`,
+      message: `From ${newQuery.client_name} — ${newQuery.project_name || newQuery.project_id}`,
+      icon: '❓'
+    });
+    saveDB(db);
+    return newQuery;
+  },
+  addQueryReply: (queryId, reply) => {
+    let db = getDB();
+    const idx = db.queries?.findIndex(q => q.id === queryId);
+    if (idx > -1) {
+      if (!db.queries[idx].replies) db.queries[idx].replies = [];
+      db.queries[idx].replies.push({
+        id: 'rep_' + Date.now(),
+        created_at: new Date().toISOString(),
+        ...reply
+      });
+      // If status was open, mark in-progress
+      if (db.queries[idx].status === 'open' && reply.from_role !== 'client') {
+        db.queries[idx].status = 'in-progress';
+      }
+      saveDB(db);
+      return true;
+    }
+    return false;
+  },
+  updateQueryStatus: (queryId, status, resolvedBy) => {
+    let db = getDB();
+    const idx = db.queries?.findIndex(q => q.id === queryId);
+    if (idx > -1) {
+      db.queries[idx].status = status;
+      if (status === 'resolved') {
+        db.queries[idx].resolved_at = new Date().toISOString();
+        db.queries[idx].resolved_by = resolvedBy;
+      }
+      saveDB(db);
+      return true;
+    }
+    return false;
+  },
+  deleteQuery: (queryId) => {
+    let db = getDB();
+    db.queries = db.queries?.filter(q => q.id !== queryId) || [];
+    saveDB(db);
+    return true;
+  },
+
+  // BIM Models
+  getBIMModels: (projectId) => {
+    const db = getDB();
+    if (projectId && projectId !== 'all') return db.bim_models?.filter(m => m.project_id === projectId) || [];
+    return db.bim_models || [];
+  },
+  addBIMModel: (data) => {
+    let db = getDB();
+    const model = { id: 'bim_' + Date.now(), created_at: new Date().toISOString(), elements: [], ...data };
+    if (!db.bim_models) db.bim_models = [];
+    db.bim_models.push(model);
+    saveDB(db);
+    return model;
+  },
+  updateBIMModel: (modelId, data) => {
+    let db = getDB();
+    const idx = db.bim_models?.findIndex(m => m.id === modelId);
+    if (idx > -1) { db.bim_models[idx] = { ...db.bim_models[idx], ...data }; saveDB(db); return true; }
+    return false;
+  },
+  deleteBIMModel: (modelId) => {
+    let db = getDB();
+    db.bim_models = db.bim_models?.filter(m => m.id !== modelId) || [];
+    saveDB(db);
+    return true;
+  },
+  addBIMElement: (modelId, element) => {
+    let db = getDB();
+    const idx = db.bim_models?.findIndex(m => m.id === modelId);
+    if (idx > -1) {
+      if (!db.bim_models[idx].elements) db.bim_models[idx].elements = [];
+      db.bim_models[idx].elements.push({ id: 'el_' + Date.now(), ...element });
+      saveDB(db);
+      return true;
+    }
+    return false;
+  },
+  updateBIMElement: (modelId, elementId, data) => {
+    let db = getDB();
+    const mIdx = db.bim_models?.findIndex(m => m.id === modelId);
+    if (mIdx > -1) {
+      const eIdx = db.bim_models[mIdx].elements?.findIndex(e => e.id === elementId);
+      if (eIdx > -1) { db.bim_models[mIdx].elements[eIdx] = { ...db.bim_models[mIdx].elements[eIdx], ...data }; saveDB(db); return true; }
+    }
+    return false;
+  },
+  deleteBIMElement: (modelId, elementId) => {
+    let db = getDB();
+    const idx = db.bim_models?.findIndex(m => m.id === modelId);
+    if (idx > -1) { db.bim_models[idx].elements = db.bim_models[idx].elements?.filter(e => e.id !== elementId) || []; saveDB(db); }
+    return true;
+  },
+
+  // Advanced KPI Analytics
+  getKPIData: () => {
+    const db = getDB();
+    const projects = db.projects || [];
+    const stages = db.stages || [];
+    const costs = db.costs || [];
+    const tasks = db.tasks || [];
+    const attendance = db.attendance || [];
+    const updates = db.updates || [];
+    const logs = db.logs || [];
+    const users = db.users || [];
+
+    const kpi = projects.map(proj => {
+      const projStages = stages.filter(s => s.project_id === proj.project_id);
+      const projCosts = costs.filter(c => c.project_id === proj.project_id);
+      const projTasks = tasks.filter(t => t.project_id === proj.project_id);
+      const projAttendance = attendance.filter(a => a.project_id === proj.project_id);
+      const projUpdates = updates.filter(u => u.project_id === proj.project_id);
+
+      const totalBudget = projStages.reduce((s, st) => s + (st.stage_budget || 0), 0);
+      const totalSpent = projStages.reduce((s, st) => s + (st.stage_spent || 0), 0);
+      const totalWages = projAttendance.reduce((s, a) => s + (Number(a.total_wage) || 0), 0);
+      const profitMargin = totalBudget - totalSpent - totalWages;
+
+      const totalWeight = projStages.reduce((s, st) => s + st.weight, 0);
+      const progress = totalWeight > 0 ? projStages.reduce((s, st) => s + (Number(st.completion_percentage) * st.weight), 0) / totalWeight : 0;
+
+      const doneTasks = projTasks.filter(t => t.status === 'done').length;
+      const overdueTasks = projTasks.filter(t => t.status !== 'done' && t.due_date && new Date(t.due_date) < new Date()).length;
+
+      const daysLeft = proj.end_date ? (new Date(proj.end_date) - new Date()) / (1000 * 60 * 60 * 24) : null;
+      const totalDays = (proj.start_date && proj.end_date) ? (new Date(proj.end_date) - new Date(proj.start_date)) / (1000 * 60 * 60 * 24) : null;
+      const timeElapsed = totalDays ? Math.min(100, ((totalDays - (daysLeft || 0)) / totalDays) * 100) : 0;
+      const scheduleVariance = progress - timeElapsed; // positive = ahead, negative = behind
+
+      const laborDays = projAttendance.reduce((s, a) => s + (Number(a.total_workers) || 0), 0);
+      const lastUpdate = projUpdates.length ? Math.max(...projUpdates.map(u => new Date(u.date))) : null;
+      const daysSinceUpdate = lastUpdate ? (new Date() - new Date(lastUpdate)) / (1000 * 60 * 60 * 24) : 999;
+
+      return {
+        project_id: proj.project_id,
+        project_name: proj.project_name,
+        location: proj.location,
+        totalBudget, totalSpent, totalWages, profitMargin,
+        progress: Math.round(progress * 10) / 10,
+        timeElapsed: Math.round(timeElapsed),
+        scheduleVariance: Math.round(scheduleVariance * 10) / 10,
+        daysLeft: daysLeft ? Math.floor(daysLeft) : null,
+        doneTasks, overdueTasks, totalTasks: projTasks.length,
+        taskRate: projTasks.length ? Math.round((doneTasks / projTasks.length) * 100) : 0,
+        laborDays, updateCount: projUpdates.length, daysSinceUpdate: Math.floor(daysSinceUpdate),
+        costEfficiency: totalBudget > 0 ? Math.round(((totalBudget - totalSpent) / totalBudget) * 100) : 0
+      };
+    });
+
+    // Engineer performance
+    const engineerPerf = users.filter(u => ['engineer','supervisor','contractor'].includes(u.role)).map(u => {
+      const userCosts = costs.filter(c => c.added_by === u.user_id).length;
+      const userUpdates = updates.filter(up => up.added_by === u.user_id).length;
+      const userLogs = logs.filter(l => l.added_by === u.user_id).length;
+      const userTasks = tasks.filter(t => t.assignee_role === u.role && t.status === 'done').length;
+      const activityScore = (userCosts * 3) + (userUpdates * 2) + (userLogs * 2) + (userTasks * 4);
+      return { user_id: u.user_id, name: u.name, role: u.role, avatar: u.avatar, userCosts, userUpdates, userLogs, userTasks, activityScore };
+    }).sort((a, b) => b.activityScore - a.activityScore);
+
+    return { projects: kpi, engineerPerf };
+  },
+
+  // RBAC — Custom permission management
+  grantCustomPermission: (userId, feature) => {
+    let db = getDB();
+    const idx = db.users?.findIndex(u => u.user_id === userId);
+    if (idx > -1) {
+      if (!db.users[idx].custom_permissions) db.users[idx].custom_permissions = [];
+      if (!db.users[idx].custom_permissions.includes(feature)) db.users[idx].custom_permissions.push(feature);
+      saveDB(db);
+      return true;
+    }
+    return false;
+  },
+  revokeCustomPermission: (userId, feature) => {
+    let db = getDB();
+    const idx = db.users?.findIndex(u => u.user_id === userId);
+    if (idx > -1) {
+      db.users[idx].custom_permissions = (db.users[idx].custom_permissions || []).filter(f => f !== feature);
+      saveDB(db);
+      return true;
+    }
+    return false;
+  },
+  setProjectAccess: (userId, projectIds) => {
+    let db = getDB();
+    const idx = db.users?.findIndex(u => u.user_id === userId);
+    if (idx > -1) { db.users[idx].project_ids = projectIds; saveDB(db); return true; }
+    return false;
+  },
+  setAccessExpiry: (userId, expiryDate) => {
+    let db = getDB();
+    const idx = db.users?.findIndex(u => u.user_id === userId);
+    if (idx > -1) { db.users[idx].access_expires = expiryDate; saveDB(db); return true; }
+    return false;
   }
 };
+
+
+

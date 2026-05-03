@@ -20,7 +20,7 @@ const Login = () => {
       setError("Please fill all fields.");
       return;
     }
-    const res = login(userId, password);
+    const res = login(userId.trim(), password);
     if (!res.success) {
       setError(res.error);
     }

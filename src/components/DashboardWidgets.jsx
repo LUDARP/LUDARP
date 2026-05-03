@@ -60,12 +60,15 @@ export const MiniWeather = ({ location }) => {
   );
 };
 
+import { useNavigate } from 'react-router-dom';
+
 export const QuickActions = () => {
+  const navigate = useNavigate();
   const actions = [
-    { label: 'Add Log', icon: '📝', color: 'var(--accent)' },
-    { label: 'New Cost', icon: '💰', color: 'var(--success)' },
-    { label: 'Upload Doc', icon: '📁', color: 'var(--purple)' },
-    { label: 'Alert team', icon: '🔔', color: 'var(--danger)' },
+    { label: 'Add Log', icon: '📝', color: 'var(--accent)', path: '/logs' },
+    { label: 'New Cost', icon: '💰', color: 'var(--success)', path: '/costs' },
+    { label: 'Upload Doc', icon: '📁', color: 'var(--purple)', path: '/documents' },
+    { label: 'Alert team', icon: '🔔', color: 'var(--danger)', action: () => window.showToast('Team alerted successfully!', 'success') },
   ];
 
   return (
@@ -73,7 +76,12 @@ export const QuickActions = () => {
       <div className="panel-title">Quick Actions</div>
       <div className="actions-grid">
         {actions.map(a => (
-          <button key={a.label} className="action-item-btn" style={{ '--item-color': a.color }}>
+          <button 
+            key={a.label} 
+            className="action-item-btn" 
+            style={{ '--item-color': a.color }}
+            onClick={() => a.path ? navigate(a.path) : a.action()}
+          >
             <span className="action-icon">{a.icon}</span>
             <span className="action-label">{a.label}</span>
           </button>

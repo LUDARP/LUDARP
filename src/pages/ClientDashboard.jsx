@@ -9,10 +9,10 @@ import { MiniWeather } from '../components/DashboardWidgets';
 
 const ClientShortcuts = () => (
   <div className="client-shortcuts">
-    <button className="shortcut-btn"><span className="icon">📞</span> Call Architect</button>
-    <button className="shortcut-btn"><span className="icon">📅</span> Schedule Visit</button>
-    <button className="shortcut-btn"><span className="icon">💳</span> Pay Milestone</button>
-    <button className="shortcut-btn"><span className="icon">📑</span> Request Doc</button>
+    <button className="shortcut-btn" onClick={() => window.showToast('Feature coming soon!', 'info')}><span className="icon">📞</span> Call Architect</button>
+    <button className="shortcut-btn" onClick={() => window.showToast('Feature coming soon!', 'info')}><span className="icon">📅</span> Schedule Visit</button>
+    <button className="shortcut-btn" onClick={() => window.showToast('Feature coming soon!', 'info')}><span className="icon">💳</span> Pay Milestone</button>
+    <button className="shortcut-btn" onClick={() => window.showToast('Feature coming soon!', 'info')}><span className="icon">📑</span> Request Doc</button>
   </div>
 );
 

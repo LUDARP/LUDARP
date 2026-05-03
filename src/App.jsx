@@ -18,6 +18,18 @@ import Updates from './pages/Updates';
 import Documents from './pages/Documents';
 import Users from './pages/Users';
 import Logs from './pages/Logs';
+import Inventory from './pages/Inventory';
+import Attendance from './pages/Attendance';
+import Scheduler from './pages/Scheduler';
+import Approvals from './pages/Approvals';
+import RiskCenter from './pages/RiskCenter';
+import Invoices from './pages/Invoices';
+import About from './pages/About';
+import Queries from './pages/Queries';
+import BIMViewer from './pages/BIMViewer';
+import KPIDashboard from './pages/KPIDashboard';
+import RBACManager from './pages/RBACManager';
+import SystemAudit from './pages/SystemAudit';
 
 const DashboardSelector = () => {
   const { user } = useAuth();
@@ -80,12 +92,23 @@ const LayoutContainer = ({ children }) => {
 
 const AppRoutes = () => {
   const { user, loading } = useAuth();
+  const [dbLoaded, setDbLoaded] = useState(false);
 
   useEffect(() => {
-    initDB();
+    initDB().then(() => setDbLoaded(true));
+    
+    // Global listener for cross-tab sync
+    const syncHandler = (e) => {
+      if (e.type === 'storage' || e.key === 'ludarp_admin_db') {
+        // Force a tiny re-render or let specific components handle it.
+        // Actually, just having the event is good enough for components that listen.
+      }
+    };
+    window.addEventListener('storage', syncHandler);
+    return () => window.removeEventListener('storage', syncHandler);
   }, []);
 
-  if (loading) return <Loader />;
+  if (loading || !dbLoaded) return <Loader />;
 
   return (
     <Routes>
@@ -97,8 +120,20 @@ const AppRoutes = () => {
       <Route path="/progress" element={<ProtectedRoute feature="progress"><LayoutContainer><Progress /></LayoutContainer></ProtectedRoute>} />
       <Route path="/costs" element={<ProtectedRoute feature="costs"><LayoutContainer><Costs /></LayoutContainer></ProtectedRoute>} />
       <Route path="/updates" element={<ProtectedRoute feature="updates"><LayoutContainer><Updates /></LayoutContainer></ProtectedRoute>} />
+      <Route path="/inventory" element={<ProtectedRoute feature="inventory"><LayoutContainer><Inventory /></LayoutContainer></ProtectedRoute>} />
+      <Route path="/attendance" element={<ProtectedRoute feature="attendance"><LayoutContainer><Attendance /></LayoutContainer></ProtectedRoute>} />
+      <Route path="/scheduler" element={<ProtectedRoute feature="scheduler"><LayoutContainer><Scheduler /></LayoutContainer></ProtectedRoute>} />
+      <Route path="/approvals" element={<ProtectedRoute feature="approvals"><LayoutContainer><Approvals /></LayoutContainer></ProtectedRoute>} />
+      <Route path="/risks" element={<ProtectedRoute feature="audit"><LayoutContainer><RiskCenter /></LayoutContainer></ProtectedRoute>} />
+      <Route path="/invoices" element={<ProtectedRoute feature="invoices"><LayoutContainer><Invoices /></LayoutContainer></ProtectedRoute>} />
+      <Route path="/queries" element={<ProtectedRoute><LayoutContainer><Queries /></LayoutContainer></ProtectedRoute>} />
+      <Route path="/bim" element={<ProtectedRoute feature="bim"><LayoutContainer><BIMViewer /></LayoutContainer></ProtectedRoute>} />
+      <Route path="/kpi" element={<ProtectedRoute feature="kpi"><LayoutContainer><KPIDashboard /></LayoutContainer></ProtectedRoute>} />
+      <Route path="/rbac" element={<ProtectedRoute feature="rbac"><LayoutContainer><RBACManager /></LayoutContainer></ProtectedRoute>} />
+      <Route path="/about" element={<ProtectedRoute><LayoutContainer><About /></LayoutContainer></ProtectedRoute>} />
       <Route path="/logs" element={<ProtectedRoute feature="logs"><LayoutContainer><Logs /></LayoutContainer></ProtectedRoute>} />
       <Route path="/documents" element={<ProtectedRoute feature="documents"><LayoutContainer><Documents /></LayoutContainer></ProtectedRoute>} />
+      <Route path="/audit" element={<ProtectedRoute feature="audit"><LayoutContainer><SystemAudit /></LayoutContainer></ProtectedRoute>} />
       <Route path="/users" element={<ProtectedRoute feature="users"><LayoutContainer><Users /></LayoutContainer></ProtectedRoute>} />
       
       <Route path="*" element={<Navigate to="/" replace />} />

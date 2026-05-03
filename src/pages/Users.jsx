@@ -118,11 +118,11 @@ const Users = () => {
         <form onSubmit={handleSave}>
            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
               <FormInput label="Full Name" type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required />
-              <FormInput label="User ID" type="text" value={formData.user_id} onChange={e => setFormData({...formData, user_id: e.target.value})} disabled={isEditing} placeholder="U005" required />
+              <FormInput label="User ID" type="text" value={formData.user_id} onChange={e => setFormData({...formData, user_id: e.target.value.trim()})} disabled={isEditing} placeholder="U005" required />
            </div>
            
            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-             <FormInput label="Role" type="select" value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})} options={['admin', 'engineer', 'architect', 'supervisor']} required />
+             <FormInput label="Role" type="select" value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})} options={['admin', 'engineer', 'architect', 'supervisor', 'contractor']} required />
              <FormInput label="Password" type="text" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} placeholder="Min 6 chars" required />
            </div>
 

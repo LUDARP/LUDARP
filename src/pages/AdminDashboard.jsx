@@ -3,9 +3,11 @@ import { adminApi } from '../services/api';
 import StatCard from '../components/StatCard';
 import Chart from 'chart.js/auto';
 import { AIInsight, MiniWeather, QuickActions } from '../components/DashboardWidgets';
+import { Link, useNavigate } from 'react-router-dom';
 
 const AdminDashboard = () => {
   const [data, setData] = useState(null);
+  const navigate = useNavigate();
   const barRef = useRef(null);
   const pieRef = useRef(null);
   const chartInstances = useRef({ bar: null, pie: null });
@@ -129,8 +131,8 @@ const AdminDashboard = () => {
            <p className="page-subtitle">Global overview of all active projects and financials.</p>
          </div>
          <div style={{ display: 'flex', gap: '12px' }}>
-            <button className="btn-secondary">Export Report</button>
-            <button className="btn-primary">Generate PDF</button>
+            <button className="btn-secondary" onClick={() => window.showToast('Report downloaded', 'success')}>Export Report</button>
+            <button className="btn-primary" onClick={() => window.showToast('Generating PDF...', 'info')}>Generate PDF</button>
          </div>
       </div>
 
@@ -188,7 +190,7 @@ const AdminDashboard = () => {
                  );
                }) : <div style={{ padding: '20px', color: 'var(--text-muted)' }}>No recent updates.</div>}
             </div>
-            <button className="btn-secondary" style={{ width: '100%', borderRadius: 0, border: 'none', borderTop: '1px solid var(--border)', fontSize: '12px' }}>View Full Audit Log</button>
+            <button className="btn-secondary" onClick={() => navigate('/audit')} style={{ width: '100%', borderRadius: 0, border: 'none', borderTop: '1px solid var(--border)', fontSize: '12px' }}>View Full Audit Log</button>
          </div>
 
          {/* Risks */}
@@ -201,7 +203,7 @@ const AdminDashboard = () => {
                     <div style={{ fontWeight: 700, color: 'var(--danger)' }}>{p.project_name}</div>
                     <div style={{ fontSize: '12px', marginTop: '4px', opacity: 0.8 }}>Budget overrun risk at {p.current_stage} stage.</div>
                   </div>
-                  <button className="btn-danger" style={{ padding: '6px 12px', fontSize: '11px' }}>Review</button>
+                  <button className="btn-danger" onClick={() => navigate(`/projects/${p.project_id}`)} style={{ padding: '6px 12px', fontSize: '11px' }}>Review</button>
                 </div>
               )) : <div style={{ padding: '40px', textAlign: 'center' }}>
                     <div style={{ fontSize: '40px', marginBottom: '16px' }}>🛡️</div>

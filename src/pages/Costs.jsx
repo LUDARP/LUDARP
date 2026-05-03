@@ -54,11 +54,14 @@ const Costs = () => {
     if(stg.length > 0 && !editingItem) setNewCost(prev => ({ ...prev, stage_name: stg[0].stage_name }));
   };
 
+  const vsRef = useRef(null);
+
   useEffect(() => {
-    if(!costSummary || !barRef.current || !pieRef.current) return;
+    if(!costSummary || !barRef.current || !pieRef.current || !vsRef.current) return;
 
     if (chartInstances.current.bar) chartInstances.current.bar.destroy();
     if (chartInstances.current.pie) chartInstances.current.pie.destroy();
+    if (chartInstances.current.vs) chartInstances.current.vs.destroy();
 
     const cLabels = Object.keys(costSummary.by_category);
     const cData = Object.values(costSummary.by_category);
@@ -86,11 +89,29 @@ const Costs = () => {
       options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'right' } } }
     });
 
+    // Budget vs Actual Chart
+    const vsLabels = stages.map(s => s.stage_name);
+    const vsBudget = stages.map(s => s.stage_budget || 0);
+    const vsSpent = stages.map(s => s.stage_spent || 0);
+
+    chartInstances.current.vs = new Chart(vsRef.current.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: vsLabels,
+        datasets: [
+          { label: 'Estimated Budget', data: vsBudget, backgroundColor: '#bdc3c7' },
+          { label: 'Actual Spent', data: vsSpent, backgroundColor: '#e74c3c' }
+        ]
+      },
+      options: { responsive: true, maintainAspectRatio: false }
+    });
+
     return () => {
       if(chartInstances.current.bar) chartInstances.current.bar.destroy();
       if(chartInstances.current.pie) chartInstances.current.pie.destroy();
+      if(chartInstances.current.vs) chartInstances.current.vs.destroy();
     }
-  }, [costSummary]);
+  }, [costSummary, stages]);
 
   const handleOpenAdd = () => {
     setEditingItem(null);
@@ -146,8 +167,8 @@ const Costs = () => {
     <div>
       <div className="page-header">
         <div>
-          <h1 className="page-title">Cost Management</h1>
-          <p className="page-subtitle">Track project expenditures.</p>
+          <h1 className="page-title">Financial Command Center</h1>
+          <p className="page-subtitle">Track project expenditures, budget adherence, and estimated profit.</p>
         </div>
         <div style={{ textAlign: 'right' }}>
            <div className="form-label" style={{ marginBottom: '4px' }}>Select Project</div>
@@ -160,13 +181,18 @@ const Costs = () => {
       {(costSummary && selectedProjectId) ? (
         <>
           <div className="stat-grid" style={{ marginBottom: '24px' }}>
-            <StatCard icon="📊" label="Total Budget" value={`₹${costSummary.total_budget.toLocaleString('en-IN')}`} />
-            <StatCard icon="💸" label="Total Spent" value={`₹${costSummary.total_spent.toLocaleString('en-IN')}`} color="danger" />
-            <StatCard icon="💰" label="Remaining" value={`₹${costSummary.remaining.toLocaleString('en-IN')}`} color={costSummary.remaining < 0 ? 'danger' : 'success'} />
-            <StatCard icon="🚦" label="Budget Health" value={costSummary.health.toUpperCase()} color={costSummary.health === 'critical' ? 'danger' : costSummary.health === 'warning' ? 'warning' : 'success'} />
+            <StatCard icon="📊" label="Total Client Budget" value={`₹${costSummary.total_budget.toLocaleString('en-IN')}`} />
+            <StatCard icon="💸" label="Actual Costs Incurred" value={`₹${costSummary.total_spent.toLocaleString('en-IN')}`} color="danger" />
+            <StatCard icon="💎" label="Est. Profit Margin" value={`₹${(costSummary.total_budget - costSummary.total_spent).toLocaleString('en-IN')}`} color={costSummary.remaining < 0 ? 'danger' : 'success'} />
+            <StatCard icon="🚦" label="Financial Health" value={costSummary.health.toUpperCase()} color={costSummary.health === 'critical' ? 'danger' : costSummary.health === 'warning' ? 'warning' : 'success'} />
           </div>
 
-          <div className="card-grid-2">
+          <div style={{ background: 'var(--surface)', padding: '24px', borderRadius: 'var(--radius)', border: '1px solid var(--border)', marginBottom: '24px' }}>
+             <h3 style={{ fontSize: '15px', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '16px' }}>Budget vs Actual per Stage</h3>
+             <div style={{ height: '300px' }}><canvas ref={vsRef}></canvas></div>
+          </div>
+
+          <div className="card-grid-2" style={{ marginBottom: '24px' }}>
             <div style={{ background: 'var(--surface)', padding: '24px', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
                <h3 style={{ fontSize: '15px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Spending by Category</h3>
                <canvas ref={barRef} style={{ maxHeight: '250px' }}></canvas>
