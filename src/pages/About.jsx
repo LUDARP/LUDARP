@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 // feature is added. It auto-renders for all role views.
 // ============================================================
 
-const APP_VERSION = 'v2.0 — Enterprise Edition';
+const APP_VERSION = 'v2.2 — Enterprise Edition';
 const LAST_UPDATED = '03 May 2026';
 
 const ALL_FEATURES = [
@@ -26,10 +26,13 @@ const ALL_FEATURES = [
   { module: 'Documents', path: '/documents', icon: '📄', desc: 'Upload and manage drawings, reports, permits, and handover documents.', roles: ['admin', 'engineer', 'architect', 'client'] },
   { module: 'Invoice & Payment', path: '/invoices', icon: '🧾', desc: 'Create milestone invoices, track payment history, and auto-notify clients.', roles: ['admin'] },
   { module: '🧠 Intelligence Center', path: '/risks', icon: '🧠', desc: 'Auto risk detection: budget overruns, inactivity, overdue tasks, deadline alerts. KPI dashboard.', roles: ['admin'] },
+  { module: '🧱 BIM Integration', path: '/bim', icon: '🧱', desc: 'Link 3D models to stages/costs. Interactive viewer with element-level data tracking.', roles: ['admin', 'engineer', 'architect'] },
+  { module: '📊 KPI Analytics', path: '/kpi', icon: '📊', desc: 'Advanced analytics: Profitability ranking, schedule variance, labor efficiency, and team leaderboard.', roles: ['admin'] },
+  { module: '🔐 Access Control', path: '/rbac', icon: '🔐', desc: 'Advanced RBAC: Per-user custom permissions, project-specific access, and access expiry control.', roles: ['admin'] },
   { module: 'System Audit', path: '/audit', icon: '🛡️', desc: 'Monitor all user logins, data entries, and system usage statistics.', roles: ['admin'] },
   { module: 'User Management', path: '/users', icon: '👥', desc: 'Create, edit, and manage all platform users with role assignment.', roles: ['admin'] },
   { module: 'Notifications', path: null, icon: '🔔', desc: 'Real-time in-app notification bell for invoice alerts, approvals, and system events.', roles: ['admin', 'engineer', 'architect', 'supervisor', 'contractor', 'client'] },
-  { module: 'Client Queries & Support', path: '/queries', icon: '❓', desc: 'Raise queries about building details. Threaded replies, status tracking (Open → In Progress → Resolved → Closed), priority levels, and admin notifications.', roles: ['admin', 'engineer', 'architect', 'supervisor', 'contractor', 'client'] },
+  { module: 'Client Queries & Support', path: '/queries', icon: '❓', desc: 'Raise queries about building details. Threaded replies, status tracking, and priority levels.', roles: ['admin', 'engineer', 'architect', 'supervisor', 'contractor', 'client'] },
 ];
 
 const ROLE_META = {
@@ -42,6 +45,7 @@ const ROLE_META = {
 };
 
 const CHANGELOG = [
+  { version: 'v2.2', date: '03 May 2026', changes: ['🧱 BIM Integration Layer with interactive 3D viewer and data linking', '📊 Advanced KPI Dashboard with profitability ranking and delay analytics', '🔐 Advanced RBAC Manager with custom permissions and access expiry', '🚪 Topbar Sign Out dropdown and Sidebar scroll buttons'] },
   { version: 'v2.1', date: '03 May 2026', changes: ['❓ Client Queries & Support module with threaded replies and resolution tracking'] },
   { version: 'v2.0', date: '03 May 2026', changes: ['📦 Material & Inventory Tracking with low-stock alerts', '👷 Workforce & Attendance with wage calculator', '💰 Financial Command Center with Budget vs Actual Gantt', '📅 Planning & Scheduler with Gantt Chart + List views', '📑 Approval & Workflow system with full review chain', '🧾 Invoice & Payment module with client auto-notifications', '🔔 Live Notification Bell in topbar', '🧠 Intelligence Center with auto risk detection & KPI dashboard', '📸 Structured updates with Tags + Before/After images', 'ℹ️ This About / Features page'] },
   { version: 'v1.5', date: '19 Apr 2026', changes: ['🛡️ System Audit dashboard for admin oversight', '👥 User Management with Contractor role support', '🔐 Role-Based Access Control (RBAC) with feature-level permissions', '⚡ Quick-login buttons on login page', '🗄️ JSON file-based database with live cross-tab sync'] },
