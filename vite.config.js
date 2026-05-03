@@ -34,10 +34,9 @@ function jsonSyncPlugin() {
   }
 }
 
-// https://vite.dev/config/
+// Deploying to: https://ludarp.github.io (root — repo must be named LUDARP.github.io)
 export default defineConfig({
-  // base is '/' for local dev and custom domains, or '/repo-name/' for github.io/repo-name
-  base: process.env.GITHUB_PAGES === 'true' ? '/client-dashboard/' : '/',
+  base: '/',
   plugins: [react(), jsonSyncPlugin()],
   server: {
     watch: {
@@ -45,4 +44,5 @@ export default defineConfig({
     }
   }
 })
+
 
