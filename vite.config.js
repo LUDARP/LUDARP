@@ -13,7 +13,6 @@ function jsonSyncPlugin() {
           req.on('data', chunk => { body += chunk.toString() });
           req.on('end', () => {
             try {
-              // Ensure valid JSON
               JSON.parse(body);
               fs.writeFileSync(path.resolve(__dirname, 'src/data/dummy_data.json'), body);
               res.setHeader('Content-Type', 'application/json');
@@ -37,10 +36,13 @@ function jsonSyncPlugin() {
 
 // https://vite.dev/config/
 export default defineConfig({
+  // base is '/' for local dev and custom domains, or '/repo-name/' for github.io/repo-name
+  base: process.env.GITHUB_PAGES === 'true' ? '/client-dashboard/' : '/',
   plugins: [react(), jsonSyncPlugin()],
   server: {
     watch: {
-      ignored: ['**/src/data/dummy_data.json'] // Prevent vite from reloading the entire app when JSON changes
+      ignored: ['**/src/data/dummy_data.json']
     }
   }
 })
+
