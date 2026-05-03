@@ -18,7 +18,7 @@ const Updates = () => {
   
   const [filterTag, setFilterTag] = useState('');
   
-  const [newUpdate, setNewUpdate] = useState({ project_id: '', stage_name: '', description: '', image_url: '', image_after_url: '', tags: '', date: new Date().toISOString().split('T')[0] });
+  const [newUpdate, setNewUpdate] = useState({ project_id: '', stage_name: '', description: '', image_url: '', image_after_url: '', tags: '', date: new Date().toISOString().split('T')[0], new_progress: '' });
 
   useEffect(() => {
     let projs = adminApi.getProjects();
@@ -96,9 +96,10 @@ const Updates = () => {
         image_after_url: newUpdate.image_after_url,
         tags: newUpdate.tags,
         date: newUpdate.date,
+        new_progress: newUpdate.new_progress ? Number(newUpdate.new_progress) : undefined,
         added_by: user.user_id
       });
-      window.showToast('Site update posted successfully');
+      window.showToast('Site update posted & progress synchronized');
     }
     
     fetchUpdates();
@@ -173,12 +174,21 @@ const Updates = () => {
              onChange={e => setNewUpdate({...newUpdate, date: e.target.value})} 
              required 
            />
-           <FormInput 
-             label="Tags (Comma separated, e.g. #slab, #inspection)" 
-             type="text" 
-             value={newUpdate.tags || ''} 
-             onChange={e => setNewUpdate({...newUpdate, tags: e.target.value})} 
-           />
+           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+             <FormInput 
+               label="Tags (e.g. #slab)" 
+               type="text" 
+               value={newUpdate.tags || ''} 
+               onChange={e => setNewUpdate({...newUpdate, tags: e.target.value})} 
+             />
+             <FormInput 
+               label="Update Stage Progress to (%)" 
+               type="number" 
+               placeholder="Current %"
+               value={newUpdate.new_progress || ''} 
+               onChange={e => setNewUpdate({...newUpdate, new_progress: e.target.value})} 
+             />
+           </div>
            <FormInput 
              label="Update Notes" 
              type="textarea" 

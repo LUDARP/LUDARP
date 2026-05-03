@@ -30,6 +30,9 @@ import BIMViewer from './pages/BIMViewer';
 import KPIDashboard from './pages/KPIDashboard';
 import RBACManager from './pages/RBACManager';
 import SystemAudit from './pages/SystemAudit';
+import Warranties from './pages/Warranties';
+import LiveSite from './pages/LiveSite';
+
 
 const DashboardSelector = () => {
   const { user } = useAuth();
@@ -41,13 +44,19 @@ const DashboardSelector = () => {
 const ToastContainer = ({ toasts }) => (
   <div className="toast-container">
     {toasts.map(t => (
-      <div key={t.id} className={`toast toast-${t.type}`}>
-        <span>{t.type === 'success' ? '✅' : '❌'}</span>
-        <span>{t.message}</span>
+      <div key={t.id} className={`toast toast-${t.type}`} style={{ animation: 'slideIn 0.3s ease forwards' }}>
+        <span style={{ fontSize: '18px' }}>
+          {t.type === 'success' ? '✅' : t.type === 'danger' ? '❌' : t.type === 'warning' ? '⚠️' : 'ℹ️'}
+        </span>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <div style={{ fontWeight: 700, fontSize: '13px' }}>{t.type.toUpperCase()}</div>
+          <div style={{ fontSize: '12px', opacity: 0.9 }}>{t.message}</div>
+        </div>
       </div>
     ))}
   </div>
 );
+
 
 const ProtectedRoute = ({ children, feature }) => {
   const { user, canAccess } = useAuth();
@@ -67,13 +76,29 @@ const LayoutContainer = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [toasts, setToasts] = useState([]);
 
-  // Attach global toast emitter
+  // Attach global toast emitter & real-time notification sync
   useEffect(() => {
     window.showToast = (message, type = 'success') => {
       const id = Date.now();
       setToasts(prev => [...prev, { id, message, type }]);
-      setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000);
+      setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000);
     };
+
+    const handleStorage = (e) => {
+      if (e.type === 'storage' && e.key === 'ludarp_admin_db') {
+        const db = JSON.parse(e.newValue || '{}');
+        const lastNotif = db.notifications?.[0];
+        if (lastNotif && new Date(lastNotif.created_at) > new Date(Date.now() - 2000)) {
+           // If it's for current user
+           const user = adminApi.getCurrentUser();
+           if (lastNotif.to === user?.user_id || (lastNotif.to === 'admin' && user?.role === 'admin')) {
+              window.showToast(lastNotif.message, 'info');
+           }
+        }
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
   return (
@@ -135,6 +160,9 @@ const AppRoutes = () => {
       <Route path="/documents" element={<ProtectedRoute feature="documents"><LayoutContainer><Documents /></LayoutContainer></ProtectedRoute>} />
       <Route path="/audit" element={<ProtectedRoute feature="audit"><LayoutContainer><SystemAudit /></LayoutContainer></ProtectedRoute>} />
       <Route path="/users" element={<ProtectedRoute feature="users"><LayoutContainer><Users /></LayoutContainer></ProtectedRoute>} />
+      <Route path="/warranties" element={<ProtectedRoute feature="warranties"><LayoutContainer><Warranties /></LayoutContainer></ProtectedRoute>} />
+      <Route path="/live" element={<ProtectedRoute feature="live_site"><LayoutContainer><LiveSite /></LayoutContainer></ProtectedRoute>} />
+
       
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

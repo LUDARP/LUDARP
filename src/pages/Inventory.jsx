@@ -172,16 +172,15 @@ const Inventory = () => {
              <FormInput label="Unit (e.g. Bags, Tons)" type="text" value={formData.unit} onChange={e => setFormData({...formData, unit: e.target.value})} required />
            </div>
            
-           {!isEditing && (
-             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-               <FormInput label="Initial Stock Received" type="number" value={formData.total_received} onChange={e => setFormData({...formData, total_received: Number(e.target.value)})} min="0" required />
-               <FormInput label="Low Stock Alert Threshold" type="number" value={formData.low_stock_threshold} onChange={e => setFormData({...formData, low_stock_threshold: Number(e.target.value)})} min="0" required />
-             </div>
-           )}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <FormInput label="Brand" type="text" value={formData.brand || ''} onChange={e => setFormData({...formData, brand: e.target.value})} placeholder="e.g. UltraTech" />
+              <FormInput label="Supplier" type="text" value={formData.supplier || ''} onChange={e => setFormData({...formData, supplier: e.target.value})} placeholder="e.g. Agarwal Traders" />
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <FormInput label="Unit Cost (₹)" type="number" value={formData.unit_cost || ''} onChange={e => setFormData({...formData, unit_cost: Number(e.target.value)})} />
+              <FormInput label="Low Stock Alert Threshold" type="number" value={formData.low_stock_threshold} onChange={e => setFormData({...formData, low_stock_threshold: Number(e.target.value)})} min="0" required />
+            </div>
 
-           {isEditing && (
-             <FormInput label="Low Stock Alert Threshold" type="number" value={formData.low_stock_threshold} onChange={e => setFormData({...formData, low_stock_threshold: Number(e.target.value)})} min="0" required />
-           )}
 
            <div className="modal-actions">
              <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>

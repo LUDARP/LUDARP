@@ -82,4 +82,33 @@ This project uses **GitHub Actions** for automated deployment.
 3. The site updates automatically at [ludarp.github.io](https://ludarp.github.io).
 
 ---
+
+## 🗺️ Enterprise Roadmap (Phase Alignment Plan)
+
+### 🔹 Phase 1: Stabilization (IN PROGRESS)
+*Goal: Turn prototypes into "Real" production features.*
+- [ ] **Structured Data Layer**: Replace loose JSON reads with a validated Data Service.
+- [ ] **True CRUD Logic**: Implement deep consistency (e.g., deleting a project cleans up all related logs/costs).
+- [ ] **Hardened RBAC**: Move security enforcement from the Router into the Component/Data layer.
+- [ ] **Live Flow Validation**: Verify the Admin → Engineer → Client data chain works without lag.
+
+### 🔹 Phase 2: Core Engine Strengthening
+*Goal: Focus on accuracy and file management.*
+- [ ] **Financial Accuracy**: Implement decimal-perfect cost calculations and currency handling.
+- [ ] **Dynamic Progress**: Link site updates directly to completion percentages.
+- [ ] **Working File System**: Transition document "placeholders" to actual browser-based file storage.
+
+### 🔹 Phase 3: The USP Layer (BIM & Analytics)
+*Goal: Deep integration.*
+- [ ] **Real BIM Mapping**: Ensure model elements are bi-directionally linked to live project tasks.
+- [ ] **KPI Intelligence**: Actual formula-based calculations for profitability and delay scores.
+
+### 🔹 Phase 4: Enterprise Polish
+*Goal: Communication & Notifications.*
+- [ ] **Push Notifications**: Transition bell notifications to browser-level push alerts.
+- [ ] **Invoice Automation**: Auto-generate invoice numbers and payment links.
+- [ ] **Query Resolution**: Resolve tickets with auto-emails to clients.
+
+---
 *Created with ❤️ for LUDARP Enterprise by Antigravity AI.*
+

@@ -24,6 +24,7 @@ const KPIDashboard = () => {
 
   const fetchData = () => setData(adminApi.getKPIData());
 
+
   if (!data) return <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading analytics...</div>;
 
   const { projects, engineerPerf } = data;
@@ -107,14 +108,17 @@ const KPIDashboard = () => {
           <div style={{ fontWeight: 700, fontSize: '15px', marginBottom: '4px' }}>📅 Schedule Variance — Ahead (+) vs Behind (−)</div>
           {sorted.delay.map(p => {
             const sv = p.scheduleVariance;
-            const color = sv >= 5 ? '#22c55e' : sv >= 0 ? '#f59e0b' : '#ef4444';
-            const label = sv >= 5 ? 'Ahead of Schedule' : sv >= 0 ? 'On Track' : 'Behind Schedule';
+            const color = p.riskLevel === 'Critical' ? '#ef4444' : p.riskLevel === 'High' ? '#f59e0b' : '#22c55e';
+            const label = p.riskLevel === 'Critical' ? 'Critical Risk' : p.riskLevel === 'High' ? 'High Risk' : 'On Track';
             return (
-              <div key={p.project_id} style={{ background: 'var(--surface)', borderRadius: 'var(--radius)', border: '1px solid var(--border)', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div key={p.project_id} style={{ background: 'var(--surface)', borderRadius: 'var(--radius)', border: `1px solid ${p.riskLevel === 'Critical' ? '#fecaca' : 'var(--border)'}`, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '16px', borderLeft: `4px solid ${color}` }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                     <span style={{ fontWeight: 700 }}>{p.project_name}</span>
-                    <span style={{ fontSize: '12px', padding: '2px 8px', borderRadius: '4px', background: color + '22', color, fontWeight: 700 }}>{label}</span>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      {p.projectedDelay > 0 && <span style={{ fontSize: '11px', background: '#fee2e2', color: '#b91c1c', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>Projected Delay: {p.projectedDelay} days</span>}
+                      <span style={{ fontSize: '12px', padding: '2px 8px', borderRadius: '4px', background: color + '22', color, fontWeight: 700 }}>{label}</span>
+                    </div>
                   </div>
                   <div style={{ display: 'flex', gap: '16px', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px' }}>
                     <span>Progress: <strong>{p.progress}%</strong></span>

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { adminApi } from '../services/api';
 import Badge from '../components/Badge';
+import { Guard } from '../context/AuthContext';
 
 const ProjectDetail = () => {
   const { projectId } = useParams();
@@ -43,20 +44,21 @@ const ProjectDetail = () => {
       {/* Tabs */}
       <div style={{ display: 'flex', gap: '24px', borderBottom: '1px solid var(--border)', marginBottom: '24px', marginTop: '24px' }}>
         {['overview', 'stages', 'costs', 'documents'].map(tab => (
-          <div 
-            key={tab} 
-            onClick={() => setActiveTab(tab)}
-            style={{ 
-              padding: '12px 4px', 
-              cursor: 'pointer', 
-              fontWeight: 600, 
-              color: activeTab === tab ? 'var(--accent)' : 'var(--text-muted)',
-              borderBottom: activeTab === tab ? '3px solid var(--accent)' : '3px solid transparent',
-              textTransform: 'capitalize'
-            }}
-          >
-            {tab}
-          </div>
+          <Guard key={tab} feature={tab === 'costs' ? 'costs' : tab === 'documents' ? 'documents' : null}>
+            <div 
+              onClick={() => setActiveTab(tab)}
+              style={{ 
+                padding: '12px 4px', 
+                cursor: 'pointer', 
+                fontWeight: 600, 
+                color: activeTab === tab ? 'var(--accent)' : 'var(--text-muted)',
+                borderBottom: activeTab === tab ? '3px solid var(--accent)' : '3px solid transparent',
+                textTransform: 'capitalize'
+              }}
+            >
+              {tab}
+            </div>
+          </Guard>
         ))}
       </div>
 
@@ -78,20 +80,22 @@ const ProjectDetail = () => {
             </div>
           </div>
           
-          <div style={{ background: 'var(--surface)', padding: '24px', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
-            <h3 style={{ fontSize: '15px', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '16px' }}>Assigned Team</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {users.map(u => (
-                <div key={u.user_id} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                   <div className="user-avatar" style={{ background: 'var(--accent)' }}>{u.avatar}</div>
-                   <div>
-                     <div style={{ fontWeight: 600, fontSize: '14px' }}>{u.name}</div>
-                     <div style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'capitalize' }}>{u.role}</div>
-                   </div>
-                </div>
-              ))}
+          <Guard feature="users">
+            <div style={{ background: 'var(--surface)', padding: '24px', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
+              <h3 style={{ fontSize: '15px', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '16px' }}>Assigned Team</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {users.map(u => (
+                  <div key={u.user_id} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div className="user-avatar" style={{ background: 'var(--accent)' }}>{u.avatar}</div>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: '14px' }}>{u.name}</div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'capitalize' }}>{u.role}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          </Guard>
         </div>
       )}
 

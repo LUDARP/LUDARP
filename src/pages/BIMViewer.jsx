@@ -74,8 +74,18 @@ const BIMViewer = () => {
 
   const handleAddEl = (e) => {
     e.preventDefault();
-    if (editingEl) { adminApi.updateBIMElement(selectedModel.id, editingEl.id, elForm); window.showToast('Element updated'); }
-    else { adminApi.addBIMElement(selectedModel.id, elForm); window.showToast('Element added'); }
+    if (editingEl) { 
+      adminApi.updateBIMElement(selectedModel.id, editingEl.id, elForm); 
+      if (elForm.status === 'completed' && elForm.link_type === 'stage') {
+        window.showToast('Stage progress synchronized with BIM', 'info');
+      } else {
+        window.showToast('Element updated');
+      }
+    }
+    else { 
+      adminApi.addBIMElement(selectedModel.id, elForm); 
+      window.showToast('Element added'); 
+    }
     fetchData(); setIsElModal(false); setEditingEl(null);
   };
 

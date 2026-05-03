@@ -4,13 +4,14 @@ import { adminApi } from '../services/api';
 const AuthContext = createContext();
 
 const BASE_PERMISSIONS = {
-  admin:      ['projects','progress','costs','updates','documents','users','audit','delete','edit','inventory','attendance','scheduler','approvals','invoices','bim','kpi','rbac'],
-  engineer:   ['progress','costs','updates','documents','logs','inventory','attendance','scheduler','approvals','bim'],
-  architect:  ['documents','updates','approvals','bim'],
-  supervisor: ['updates','logs','inventory','attendance','approvals'],
-  contractor: ['updates','logs','inventory','attendance','approvals'],
-  client:     ['progress','updates','documents']
+  admin:      ['projects','progress','costs','updates','documents','users','audit','delete','edit','inventory','attendance','scheduler','approvals','invoices','bim','kpi','rbac','warranties','live_site'],
+  engineer:   ['progress','costs','updates','documents','logs','inventory','attendance','scheduler','approvals','bim','warranties','live_site'],
+  architect:  ['documents','updates','approvals','bim','live_site'],
+  supervisor: ['updates','logs','inventory','attendance','approvals','live_site'],
+  contractor: ['updates','logs','inventory','attendance','approvals','live_site'],
+  client:     ['progress','updates','documents','warranties','live_site']
 };
+
 
 const ALL_FEATURES = ['projects','progress','costs','updates','documents','users','audit','delete','edit','inventory','attendance','scheduler','approvals','invoices','bim','kpi','rbac','logs'];
 
@@ -61,5 +62,21 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
+// Hardened RBAC Guard Component
+export const Guard = ({ feature, projectId, children, fallback = null }) => {
+  const { canAccess, hasProjectAccess, isExpired } = useAuth();
+  
+  if (isExpired()) return fallback;
+  
+  // If feature is required, check it
+  if (feature && !canAccess(feature)) return fallback;
+  
+  // If specific project access is required, check it
+  if (projectId && !hasProjectAccess(projectId)) return fallback;
+  
+  return children;
+};
+
 export const useAuth = () => useContext(AuthContext);
+
 

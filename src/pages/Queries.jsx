@@ -277,7 +277,14 @@ const Queries = () => {
 
             {/* Original Query */}
             <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: '6px' }}>Original Query</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Original Query</div>
+                {selected.status !== 'resolved' && !isClient && (
+                  <button className="btn-primary" style={{ fontSize: '11px', padding: '4px 10px', background: 'var(--success)', width: 'auto' }} onClick={() => handleStatusChange(selected.id, 'resolved')}>
+                    ✅ Resolve Ticket
+                  </button>
+                )}
+              </div>
               <div style={{ fontSize: '13px', lineHeight: '1.6', color: 'var(--text)' }}>{selected.description}</div>
             </div>
 

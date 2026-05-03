@@ -110,8 +110,13 @@ const Invoices = () => {
               <div key={inv.id} onClick={() => setSelectedInvoice(inv)} style={{ background: 'var(--surface)', borderRadius: 'var(--radius)', border: `2px solid ${selectedInvoice?.id === inv.id ? 'var(--accent)' : 'var(--border)'}`, padding: '20px', cursor: 'pointer', transition: 'border-color 0.2s' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
                   <div>
-                    <div style={{ fontWeight: 700, fontSize: '15px' }}>{inv.title}</div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>{inv.projectName} · {inv.milestone}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--accent)', background: 'var(--accent-light)', padding: '2px 6px', borderRadius: '4px' }}>
+                        {inv.invoice_no || `LDP/2026/${String(inv.id).slice(-3)}`}
+                      </div>
+                      <div style={{ fontWeight: 700, fontSize: '15px' }}>{inv.title}</div>
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>{inv.projectName} · {inv.milestone}</div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <Badge label={`${statusIcon[inv.status]} ${inv.status}`} variant={statusVariant[inv.status]} />
@@ -165,6 +170,9 @@ const Invoices = () => {
                 <span style={{ color: 'var(--text-muted)' }}>{new Date(p.date).toLocaleDateString('en-GB')}</span>
               </div>
             ))}
+            <button className="btn-secondary" style={{ width: '100%', marginTop: '24px' }} onClick={() => window.showToast('Generating PDF Invoice...', 'info')}>
+              📄 Download PDF Invoice
+            </button>
           </div>
         )}
       </div>

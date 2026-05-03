@@ -14,6 +14,7 @@ const Documents = () => {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
   const [newDoc, setNewDoc] = useState({ project_id: '', document_name: '', category: 'Drawing', file_url: '' });
 
   useEffect(() => {
@@ -42,7 +43,7 @@ const Documents = () => {
   };
 
   const handleOpenAdd = () => {
-    setEditingItem(null);
+    setSelectedFile(null);
     setNewDoc({ 
       project_id: selectedProjectId === 'all' ? (projects[0]?.project_id || '') : selectedProjectId, 
       document_name: '', 
@@ -58,21 +59,33 @@ const Documents = () => {
     setIsModalOpen(true);
   };
 
-  const handleSaveDoc = (e) => {
+  const handleSaveDoc = async (e) => {
     e.preventDefault();
     if (editingItem) {
       adminApi.updateDocument(editingItem.id, newDoc);
       window.showToast('Document updated successfully');
     } else {
-      adminApi.addDocument(newDoc.project_id, {
+      await adminApi.addDocument(newDoc.project_id, {
         ...newDoc,
         uploaded_by: user.user_id
-      });
-      window.showToast('Document uploaded successfully');
+      }, selectedFile);
+      window.showToast('Document stored in system');
     }
     
     fetchDocuments();
     setIsModalOpen(false);
+  };
+
+  const handleDownload = async (id, name) => {
+    const data = adminApi.getDocumentData(id);
+    if (!data) {
+      window.showToast('File data not found', 'danger');
+      return;
+    }
+    const link = document.createElement('a');
+    link.href = data;
+    link.download = name;
+    link.click();
   };
 
   const handleDelete = (id) => {
@@ -87,7 +100,12 @@ const Documents = () => {
     { key: 'projectName', label: 'Project' },
     { key: 'uploaded_date', label: 'Date', render: (row) => new Date(row.uploaded_date).toLocaleDateString('en-GB') },
     { key: 'authorName', label: 'Uploaded By' },
-    { key: 'file_url', label: 'Link', render: (row) => <a href={row.file_url} target="_blank" rel="noreferrer" style={{color: 'var(--accent)', textDecoration: 'underline'}}>View file</a> }
+    { key: 'file_url', label: 'Action', render: (row) => (
+      <div style={{ display: 'flex', gap: '8px' }}>
+        {row.file_url && <a href={row.file_url} target="_blank" rel="noreferrer" style={{color: 'var(--accent)', textDecoration: 'underline'}}>URL</a>}
+        <button onClick={() => handleDownload(row.id, row.document_name)} style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: '12px', textDecoration: 'underline', padding: 0 }}>Download</button>
+      </div>
+    )}
   ];
 
   return (
@@ -139,14 +157,22 @@ const Documents = () => {
              options={['Drawing', 'Report', 'Approval', 'Contract', 'Other']} 
              required 
            />
-           <FormInput 
-             label="File URL" 
-             type="text" 
-             placeholder="https://..."
-             value={newDoc.file_url} 
-             onChange={e => setNewDoc({...newDoc, file_url: e.target.value})} 
-             required
-           />
+            <div style={{ marginBottom: '16px' }}>
+              <div className="form-label" style={{ marginBottom: '8px' }}>Upload Real File (Stores in system)</div>
+              <input 
+                type="file" 
+                onChange={e => setSelectedFile(e.target.files[0])}
+                style={{ fontSize: '13px' }}
+                disabled={!!editingItem}
+              />
+            </div>
+            <FormInput 
+              label="Or Provide File URL (External Link)" 
+              type="text" 
+              placeholder="https://..."
+              value={newDoc.file_url} 
+              onChange={e => setNewDoc({...newDoc, file_url: e.target.value})} 
+            />
            <div className="modal-actions">
              <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
              <button type="submit" className="btn-primary">{editingItem ? "Update Document" : "Save Document"}</button>
