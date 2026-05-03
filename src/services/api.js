@@ -19,7 +19,6 @@ export const initDB = async () => {
 const getDB = () => JSON.parse(localStorage.getItem(DB_KEY) || '{}');
 
 const SCHEMAS = {
-const SCHEMAS = {
   project: ['project_id', 'project_name', 'location', 'client_name', 'status'],
   cost: ['id', 'project_id', 'amount', 'category', 'date', 'added_by'],
   update: ['id', 'project_id', 'text', 'date', 'added_by'],
