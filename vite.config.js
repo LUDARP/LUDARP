@@ -36,7 +36,7 @@ function jsonSyncPlugin() {
 
 // Deploying to: https://ludarp.github.io (root — repo must be named LUDARP.github.io)
 export default defineConfig({
-  base: '/',
+  base: './',
   plugins: [react(), jsonSyncPlugin()],
   server: {
     watch: {
@@ -44,5 +44,6 @@ export default defineConfig({
     }
   }
 })
+
 
 
