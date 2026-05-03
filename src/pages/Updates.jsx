@@ -18,7 +18,8 @@ const Updates = () => {
   
   const [filterTag, setFilterTag] = useState('');
   
-  const [newUpdate, setNewUpdate] = useState({ project_id: '', stage_name: '', description: '', image_url: '', image_after_url: '', tags: '', date: new Date().toISOString().split('T')[0], new_progress: '' });
+  const [newUpdate, setNewUpdate] = useState({ project_id: '', stage_name: '', category: 'Progress', description: '', image_url: '', image_after_url: '', tags: '', date: new Date().toISOString().split('T')[0], new_progress: '' });
+
 
   useEffect(() => {
     let projs = adminApi.getProjects();
@@ -90,7 +91,7 @@ const Updates = () => {
       window.showToast('Update modified successfully');
     } else {
       adminApi.addUpdate(newUpdate.project_id, {
-        stage_name: newUpdate.stage_name,
+        category: newUpdate.category || 'Progress',
         description: newUpdate.description,
         image_url: newUpdate.image_url,
         image_after_url: newUpdate.image_after_url,
@@ -167,13 +168,23 @@ const Updates = () => {
              options={stages.map(s => s.stage_name)} 
              required 
            />
-           <FormInput 
-             label="Date" 
-             type="date" 
-             value={newUpdate.date} 
-             onChange={e => setNewUpdate({...newUpdate, date: e.target.value})} 
-             required 
-           />
+           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+             <FormInput 
+               label="Date" 
+               type="date" 
+               value={newUpdate.date} 
+               onChange={e => setNewUpdate({...newUpdate, date: e.target.value})} 
+               required 
+             />
+             <FormInput 
+               label="Update Type" 
+               type="select" 
+               value={newUpdate.category} 
+               onChange={e => setNewUpdate({...newUpdate, category: e.target.value})} 
+               options={['Progress', 'Inspection', 'Daily Log', 'Issue']} 
+               required 
+             />
+           </div>
            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
              <FormInput 
                label="Tags (e.g. #slab)" 

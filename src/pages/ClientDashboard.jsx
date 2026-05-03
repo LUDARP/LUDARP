@@ -32,6 +32,8 @@ const ClientDashboard = () => {
       const updates = adminApi.getUpdates(projectId);
       const stageInfo = adminApi.getStages(projectId);
       const spending = adminApi.getCostSummary(projectId);
+      const kpi = adminApi.getKPIData().projects.find(p => p.project_id === projectId);
+      const live = adminApi.getLiveFeed(projectId);
 
       if (project) {
         setData({
@@ -39,13 +41,16 @@ const ClientDashboard = () => {
           updates: updates.slice(0, 3),
           stages: stageInfo.stages,
           overallProgress: stageInfo.overallProgress,
-          spending
+          spending,
+          kpi,
+          live
         });
       } else {
         setError('Failed to fetch dashboard data');
       }
       setLoading(false);
     };
+
 
     fetchData();
   }, []);
@@ -105,10 +110,14 @@ const ClientDashboard = () => {
           <p style={{ fontSize: '15px', color: 'var(--text)', margin: 0, lineHeight: '1.6' }}>
             {project.description}
           </p>
-          <div className="ai-note" style={{ marginTop: '20px', padding: '16px', background: 'var(--info-light)', borderRadius: '8px', borderLeft: '4px solid var(--info)' }}>
-             <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--info)', marginBottom: '4px' }}>✨ AI Project Insight</div>
+          <div className="ai-note" style={{ marginTop: '20px', padding: '16px', background: data.kpi?.riskLevel === 'Normal' ? 'var(--info-light)' : 'var(--danger-light)', borderRadius: '8px', borderLeft: `4px solid ${data.kpi?.riskLevel === 'Normal' ? 'var(--info)' : 'var(--danger)'}` }}>
+             <div style={{ fontWeight: 700, fontSize: '13px', color: data.kpi?.riskLevel === 'Normal' ? 'var(--info)' : 'var(--danger)', marginBottom: '4px' }}>✨ AI Project Insight</div>
              <div style={{ fontSize: '13px', color: 'var(--text)' }}>
-               Your project is <strong>ahead of schedule</strong> by 4 days. The {project.current_stage} phase is progressing efficiently. No critical issues reported.
+               {data.kpi?.riskLevel === 'Normal' ? (
+                 <>Your project is <strong>on track</strong>. Current progress is {overallProgress.toFixed(1)}% vs time elapsed of {data.kpi?.timeElapsed}%.</>
+               ) : (
+                 <>Attention: Project risk is <strong>{data.kpi?.riskLevel}</strong>. Projected delay is {data.kpi?.projectedDelay} days. Contact the lead engineer for details.</>
+               )}
              </div>
           </div>
         </div>
@@ -126,7 +135,12 @@ const ClientDashboard = () => {
         </div>
         <div className="stat-card">
           <div className="stat-title">End Date (Est)</div>
-          <div className="stat-value">{formatDate(project.end_date)}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div className="stat-value">{formatDate(project.end_date)}</div>
+            {data.kpi?.projectedDelay > 0 && (
+              <Badge label={`+${data.kpi.projectedDelay}d`} variant="danger" />
+            )}
+          </div>
         </div>
         <div className="stat-card">
           <div className="stat-title">Current Stage</div>
@@ -149,17 +163,38 @@ const ClientDashboard = () => {
       </div>
 
       {/* Budget Snapshot */}
-      <div style={{ marginBottom: '32px', background: 'var(--surface)', padding: '20px', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-          <span style={{ fontWeight: '600' }}>Budget Snapshot</span>
-          <span className="amount">₹{totalBudget.toLocaleString('en-IN')}</span>
+      <div style={{ marginBottom: '32px', display: 'grid', gridTemplateColumns: '1fr 300px', gap: '24px' }}>
+        <div style={{ background: 'var(--surface)', padding: '20px', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <span style={{ fontWeight: '600' }}>Budget Snapshot</span>
+            <span className="amount">₹{totalBudget.toLocaleString('en-IN')}</span>
+          </div>
+          <div className="progress-outer" style={{ height: '14px' }}>
+            <div className="progress-inner" style={{ width: `${Math.min(100, spentPct)}%`, background: spentPct > 100 ? 'var(--danger)' : 'var(--accent)' }}></div>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', fontSize: '13px' }}>
+            <span style={{ color: 'var(--danger)', fontWeight: '600' }}>Spent: ₹{totalSpent.toLocaleString('en-IN')}</span>
+            <span style={{ color: 'var(--success)', fontWeight: '600' }}>Remaining: ₹{(totalBudget - totalSpent).toLocaleString('en-IN')}</span>
+          </div>
         </div>
-        <div className="progress-outer" style={{ height: '14px' }}>
-          <div className="progress-inner" style={{ width: `${Math.min(100, spentPct)}%`, background: spentPct > 100 ? 'var(--danger)' : 'var(--accent)' }}></div>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', fontSize: '13px' }}>
-          <span style={{ color: 'var(--danger)', fontWeight: '600' }}>Spent: ₹{totalSpent.toLocaleString('en-IN')}</span>
-          <span style={{ color: 'var(--success)', fontWeight: '600' }}>Remaining: ₹{(totalBudget - totalSpent).toLocaleString('en-IN')}</span>
+        
+        <div style={{ background: 'var(--surface)', padding: '20px', borderRadius: 'var(--radius)', border: '1px solid var(--border)', fontSize: '12px' }}>
+           <div style={{ fontWeight: 700, textTransform: 'uppercase', marginBottom: '12px', color: 'var(--text-muted)' }}>Financial Breakdown</div>
+           {['Materials', 'Labor', 'Equipment'].map(cat => {
+             const amt = spending?.by_category[cat] || 0;
+             const pct = totalSpent > 0 ? (amt / totalSpent) * 100 : 0;
+             return (
+               <div key={cat} style={{ marginBottom: '8px' }}>
+                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
+                   <span>{cat}</span>
+                   <span style={{ fontWeight: 600 }}>₹{amt.toLocaleString('en-IN')}</span>
+                 </div>
+                 <div style={{ height: '4px', background: 'var(--border)', borderRadius: '2px' }}>
+                   <div style={{ height: '4px', background: 'var(--accent)', width: `${pct}%`, borderRadius: '2px' }} />
+                 </div>
+               </div>
+             );
+           })}
         </div>
       </div>
 
@@ -208,9 +243,17 @@ const ClientDashboard = () => {
 
            <div>
              <h3 style={{ fontSize: '18px', marginBottom: '16px' }}>Project Team</h3>
-             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
                {project.contacts?.map((c, i) => <ContactCard key={i} contact={c} />)}
              </div>
+           </div>
+
+           {/* Live Feed Shortcut */}
+           <div style={{ background: '#000', borderRadius: 'var(--radius)', padding: '20px', textAlign: 'center', color: '#fff' }}>
+             <div style={{ fontSize: '24px', marginBottom: '8px' }}>📡</div>
+             <div style={{ fontSize: '14px', fontWeight: 700 }}>Live Site Camera</div>
+             <div style={{ fontSize: '11px', opacity: 0.7, marginBottom: '16px' }}>View real-time feed of your project.</div>
+             <Link to="/live" className="btn-primary" style={{ background: '#fff', color: '#000', width: 'auto' }}>Watch Live</Link>
            </div>
         </div>
       </div>
