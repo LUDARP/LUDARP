@@ -13,6 +13,7 @@ const Logs = () => {
   const [logs, setLogs] = useState([]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
   const [newLog, setNewLog] = useState({ 
     project_id: '', 
     date: new Date().toISOString().split('T')[0], 
@@ -54,17 +55,40 @@ const Logs = () => {
     setLogs(enrichedList);
   };
 
-  const handleAddLog = (e) => {
-    e.preventDefault();
-    adminApi.addLog(newLog.project_id, {
-      ...newLog,
-      added_by: user.user_id
+  const handleOpenAdd = () => {
+    setEditingItem(null);
+    setNewLog({ 
+      project_id: selectedProjectId === 'all' ? (projects[0]?.project_id || '') : selectedProjectId, 
+      date: new Date().toISOString().split('T')[0], 
+      work_done: '', 
+      labor_count: '', 
+      issues: '' 
     });
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEdit = (item) => {
+    setEditingItem(item);
+    setNewLog({ ...item });
+    setIsModalOpen(true);
+  };
+
+  const handleSaveLog = (e) => {
+    e.preventDefault();
+
+    if (editingItem) {
+      adminApi.updateLog(editingItem.id, newLog);
+      window.showToast('Daily log updated successfully');
+    } else {
+      adminApi.addLog(newLog.project_id, {
+        ...newLog,
+        added_by: user.user_id
+      });
+      window.showToast('Daily log saved');
+    }
     
     fetchLogs();
     setIsModalOpen(false);
-    setNewLog({ ...newLog, work_done: '', labor_count: '', issues: '' });
-    window.showToast('Daily log saved');
   };
 
   const handleDelete = (id) => {
@@ -76,7 +100,7 @@ const Logs = () => {
   const columns = [
     { key: 'date', label: 'Date', render: (row) => <strong>{new Date(row.date).toLocaleDateString('en-GB')}</strong> },
     { key: 'projectName', label: 'Project' },
-    { key: 'work_done', label: 'Work Done', render: (row) => <span title={row.work_done}>{row.work_done.substring(0, 50)}...</span> },
+    { key: 'work_done', label: 'Work Done', render: (row) => <span title={row.work_done}>{row.work_done.length > 50 ? row.work_done.substring(0, 50) + '...' : row.work_done}</span> },
     { key: 'labor_count', label: 'Labours', render: (row) => <span className="badge badge-info">{row.labor_count}</span> },
     { key: 'issues', label: 'Issues', render: (row) => <span style={{color: row.issues ? 'var(--danger)' : 'var(--text-muted)'}}>{row.issues || 'None'}</span> },
     { key: 'authorName', label: 'Reported By' }
@@ -99,7 +123,7 @@ const Logs = () => {
                </select>
              </div>
            )}
-           <button className="btn-primary" style={{ padding: '10px 20px', height: '41px' }} onClick={() => setIsModalOpen(true)}>+ New Log</button>
+           <button className="btn-primary" style={{ padding: '10px 20px', height: '41px' }} onClick={handleOpenAdd}>+ New Log</button>
         </div>
       </div>
 
@@ -109,10 +133,10 @@ const Logs = () => {
          <StatCard icon="⚠️" label="Open Issues" value={logs.filter(l => l.issues).length} color="danger" />
       </div>
 
-      <DataTable columns={columns} data={logs} onDelete={handleDelete} />
+      <DataTable columns={columns} data={logs} onDelete={handleDelete} onEdit={handleOpenEdit} />
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add Daily Site Report">
-        <form onSubmit={handleAddLog}>
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingItem ? "Edit Daily Site Report" : "Add Daily Site Report"}>
+        <form onSubmit={handleSaveLog}>
            <FormInput 
              label="Project" 
              type="select" 
@@ -120,6 +144,7 @@ const Logs = () => {
              onChange={e => setNewLog({...newLog, project_id: e.target.value})} 
              options={projects.map(p => ({value: p.project_id, label: p.project_name}))} 
              required 
+             disabled={!!editingItem}
            />
            <FormInput 
              label="Report Date" 
@@ -155,7 +180,7 @@ const Logs = () => {
            
            <div className="modal-actions">
              <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
-             <button type="submit" className="btn-primary">Save Report</button>
+             <button type="submit" className="btn-primary">{editingItem ? "Update Report" : "Save Report"}</button>
            </div>
         </form>
       </Modal>

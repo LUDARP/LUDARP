@@ -17,6 +17,7 @@ const Costs = () => {
   const [stages, setStages] = useState([]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
   const [newCost, setNewCost] = useState({ stage_name: '', category: 'Materials', amount: '', date: new Date().toISOString().split('T')[0], note: '' });
 
   const barRef = useRef(null);
@@ -50,7 +51,7 @@ const Costs = () => {
     setCostsList(enrichedList);
     setStages(stg);
     
-    if(stg.length > 0) setNewCost(prev => ({ ...prev, stage_name: stg[0].stage_name }));
+    if(stg.length > 0 && !editingItem) setNewCost(prev => ({ ...prev, stage_name: stg[0].stage_name }));
   };
 
   useEffect(() => {
@@ -91,20 +92,39 @@ const Costs = () => {
     }
   }, [costSummary]);
 
-  const handleAddCost = (e) => {
+  const handleOpenAdd = () => {
+    setEditingItem(null);
+    setNewCost({ stage_name: stages[0]?.stage_name || '', category: 'Materials', amount: '', date: new Date().toISOString().split('T')[0], note: '' });
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEdit = (item) => {
+    setEditingItem(item);
+    setNewCost({ ...item });
+    setIsModalOpen(true);
+  };
+
+  const handleSaveCost = (e) => {
     e.preventDefault();
     if(Number(newCost.amount) <= 0) return;
 
-    adminApi.addCost(selectedProjectId, {
-      ...newCost,
-      amount: Number(newCost.amount),
-      added_by: user.user_id
-    });
+    if (editingItem) {
+      adminApi.updateCost(editingItem.id, {
+        ...newCost,
+        project_id: selectedProjectId
+      });
+      window.showToast('Cost updated successfully');
+    } else {
+      adminApi.addCost(selectedProjectId, {
+        ...newCost,
+        amount: Number(newCost.amount),
+        added_by: user.user_id
+      });
+      window.showToast('Cost logged successfully');
+    }
     
     fetchCostData();
     setIsModalOpen(false);
-    setNewCost(prev => ({ ...prev, amount: '', note: '' }));
-    window.showToast('Cost logged successfully');
   };
 
   const handleDelete = (id) => {
@@ -159,13 +179,13 @@ const Costs = () => {
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
              <h3 style={{ fontSize: '18px', margin: 0 }}>Cost Data Log</h3>
-             <button className="btn-primary" onClick={() => setIsModalOpen(true)}>+ Log Cost</button>
+             <button className="btn-primary" onClick={handleOpenAdd}>+ Log Cost</button>
           </div>
 
-          <DataTable columns={columns} data={costsList} onDelete={handleDelete} />
+          <DataTable columns={columns} data={costsList} onDelete={handleDelete} onEdit={handleOpenEdit} />
 
-          <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Log Expense">
-            <form onSubmit={handleAddCost}>
+          <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingItem ? 'Edit Expense' : 'Log Expense'}>
+            <form onSubmit={handleSaveCost}>
                <FormInput label="Project" type="select" value={selectedProjectId} options={projects.map(p => ({value: p.project_id, label: p.project_name}))} disabled />
                <FormInput label="Stage" type="select" value={newCost.stage_name} onChange={e => setNewCost({...newCost, stage_name: e.target.value})} options={stages.map(s => s.stage_name)} required />
                <FormInput label="Category" type="select" value={newCost.category} onChange={e => setNewCost({...newCost, category: e.target.value})} options={['Materials', 'Labor', 'Miscellaneous', 'Equipment', 'Professional Fees']} required />
@@ -174,7 +194,7 @@ const Costs = () => {
                <FormInput label="Note / Reference" type="text" value={newCost.note} onChange={e => setNewCost({...newCost, note: e.target.value})} />
                <div className="modal-actions">
                  <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
-                 <button type="submit" className="btn-primary">Save Log</button>
+                 <button type="submit" className="btn-primary">{editingItem ? 'Update Log' : 'Save Log'}</button>
                </div>
             </form>
           </Modal>

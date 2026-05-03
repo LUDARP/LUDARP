@@ -2,6 +2,7 @@
   "name": "client-dashboard",
   "private": true,
   "version": "0.0.0",
+  "homepage": "https://LUDARP.github.io/LUDARP/",
   "type": "module",
   "scripts": {
     "dev": "vite",

@@ -109,7 +109,7 @@ const AppRoutes = () => {
 function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
+      <BrowserRouter basename="/LUDARP">
         <AppRoutes />
       </BrowserRouter>
     </AuthProvider>

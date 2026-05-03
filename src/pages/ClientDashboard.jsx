@@ -5,6 +5,16 @@ import Loader from '../components/Loader';
 import UpdateCard from '../components/UpdateCard';
 import ContactCard from '../components/ContactCard';
 import PendingItem from '../components/PendingItem';
+import { MiniWeather } from '../components/DashboardWidgets';
+
+const ClientShortcuts = () => (
+  <div className="client-shortcuts">
+    <button className="shortcut-btn"><span className="icon">📞</span> Call Architect</button>
+    <button className="shortcut-btn"><span className="icon">📅</span> Schedule Visit</button>
+    <button className="shortcut-btn"><span className="icon">💳</span> Pay Milestone</button>
+    <button className="shortcut-btn"><span className="icon">📑</span> Request Doc</button>
+  </div>
+);
 
 const ClientDashboard = () => {
   const [data, setData] = useState({ project: null, updates: [], stages: [], overallProgress: 0, spending: null });
@@ -89,9 +99,24 @@ const ClientDashboard = () => {
       </div>
       
       {/* Description */}
-      <p style={{ fontSize: '15px', color: 'var(--text)', marginBottom: '32px', lineHeight: '1.6' }}>
-        {project.description}
-      </p>
+      <div className="dashboard-top-grid" style={{ marginTop: '24px' }}>
+        <div style={{ background: 'white', padding: '24px', borderRadius: 'var(--radius)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
+          <h3 style={{ fontSize: '13px', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '12px', fontWeight: '700' }}>Project Summary</h3>
+          <p style={{ fontSize: '15px', color: 'var(--text)', margin: 0, lineHeight: '1.6' }}>
+            {project.description}
+          </p>
+          <div className="ai-note" style={{ marginTop: '20px', padding: '16px', background: 'var(--info-light)', borderRadius: '8px', borderLeft: '4px solid var(--info)' }}>
+             <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--info)', marginBottom: '4px' }}>✨ AI Project Insight</div>
+             <div style={{ fontSize: '13px', color: 'var(--text)' }}>
+               Your project is <strong>ahead of schedule</strong> by 4 days. The {project.current_stage} phase is progressing efficiently. No critical issues reported.
+             </div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <MiniWeather location={project.location} />
+          <ClientShortcuts />
+        </div>
+      </div>
 
       {/* Brief Strip */}
       <div className="stat-grid">

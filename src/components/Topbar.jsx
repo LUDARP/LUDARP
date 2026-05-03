@@ -17,11 +17,19 @@ const Topbar = ({ toggleSidebar }) => {
     <header className="topbar">
       <button className="menu-toggle" onClick={toggleSidebar}>☰</button>
       
-      <div style={{ flex: 1 }}></div>
+      <div className="topbar-search-container">
+        <span className="search-icon">🔍</span>
+        <input type="text" placeholder="Search projects or documents..." className="topbar-search-input" />
+      </div>
 
       <div className="topbar-right">
+        <div className="notification-bell">
+          <span className="bell-icon">🔔</span>
+          <span className="notification-dot"></span>
+        </div>
+        
         {user.role === 'admin' && (
-          <button className="reset-btn" onClick={handleReset}>Reset Data</button>
+          <button className="reset-btn" onClick={handleReset}>System Data</button>
         )}
         <div className="user-profile">
           <div className="user-info" style={{ textAlign: 'right' }}>

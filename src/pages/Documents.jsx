@@ -7,12 +7,13 @@ import FormInput from '../components/FormInput';
 import Badge from '../components/Badge';
 
 const Documents = () => {
-  const { user } = useAuth();
+  const { user, canAccess } = useAuth();
   const [projects, setProjects] = useState([]);
   const [selectedProjectId, setSelectedProjectId] = useState('all');
   const [documents, setDocuments] = useState([]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
   const [newDoc, setNewDoc] = useState({ project_id: '', document_name: '', category: 'Drawing', file_url: '' });
 
   useEffect(() => {
@@ -40,28 +41,38 @@ const Documents = () => {
     setDocuments(enrichedList);
   };
 
-  const handleOpenModal = () => {
-    if (selectedProjectId === 'all' && projects.length > 0) {
-      setNewDoc(prev => ({ ...prev, project_id: projects[0].project_id }));
-    } else {
-      setNewDoc(prev => ({ ...prev, project_id: selectedProjectId }));
-    }
+  const handleOpenAdd = () => {
+    setEditingItem(null);
+    setNewDoc({ 
+      project_id: selectedProjectId === 'all' ? (projects[0]?.project_id || '') : selectedProjectId, 
+      document_name: '', 
+      category: 'Drawing', 
+      file_url: '' 
+    });
     setIsModalOpen(true);
   };
 
-  const handleAddDoc = (e) => {
+  const handleOpenEdit = (item) => {
+    setEditingItem(item);
+    setNewDoc({ ...item });
+    setIsModalOpen(true);
+  };
+
+  const handleSaveDoc = (e) => {
     e.preventDefault();
-    adminApi.addDocument(newDoc.project_id, {
-      document_name: newDoc.document_name,
-      category: newDoc.category,
-      file_url: newDoc.file_url,
-      uploaded_by: user.user_id
-    });
+    if (editingItem) {
+      adminApi.updateDocument(editingItem.id, newDoc);
+      window.showToast('Document updated successfully');
+    } else {
+      adminApi.addDocument(newDoc.project_id, {
+        ...newDoc,
+        uploaded_by: user.user_id
+      });
+      window.showToast('Document uploaded successfully');
+    }
     
     fetchDocuments();
     setIsModalOpen(false);
-    setNewDoc({ ...newDoc, document_name: '', file_url: '' });
-    window.showToast('Document uploaded successfully');
   };
 
   const handleDelete = (id) => {
@@ -96,14 +107,14 @@ const Documents = () => {
                </select>
              </div>
            )}
-           {canAccess('edit') && <button className="btn-primary" style={{ padding: '10px 20px', height: '41px' }} onClick={handleOpenModal}>+ Add Document</button>}
+           {canAccess('documents') && <button className="btn-primary" style={{ padding: '10px 20px', height: '41px' }} onClick={handleOpenAdd}>+ Add Document</button>}
         </div>
       </div>
 
-      <DataTable columns={columns} data={documents} onDelete={handleDelete} />
+      <DataTable columns={columns} data={documents} onDelete={handleDelete} onEdit={handleOpenEdit} />
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Upload Document">
-        <form onSubmit={handleAddDoc}>
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingItem ? "Edit Document" : "Upload Document"}>
+        <form onSubmit={handleSaveDoc}>
            <FormInput 
              label="Project" 
              type="select" 
@@ -111,6 +122,7 @@ const Documents = () => {
              onChange={e => setNewDoc({...newDoc, project_id: e.target.value})} 
              options={projects.map(p => ({value: p.project_id, label: p.project_name}))} 
              required 
+             disabled={!!editingItem}
            />
            <FormInput 
              label="Document Name" 
@@ -137,7 +149,7 @@ const Documents = () => {
            />
            <div className="modal-actions">
              <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
-             <button type="submit" className="btn-primary">Save Document</button>
+             <button type="submit" className="btn-primary">{editingItem ? "Update Document" : "Save Document"}</button>
            </div>
         </form>
       </Modal>

@@ -6,7 +6,7 @@ import FormInput from '../components/FormInput';
 import Badge from '../components/Badge';
 
 const Progress = () => {
-  const { user } = useAuth();
+  const { user, canAccess } = useAuth();
   const [projects, setProjects] = useState([]);
   const [selectedProjectId, setSelectedProjectId] = useState('');
   

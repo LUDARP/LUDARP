@@ -170,6 +170,27 @@ export const adminApi = {
     saveDB(db);
     return newCost;
   },
+  updateCost: (costId, data) => {
+    let db = getDB();
+    const idx = db.costs?.findIndex(c => c.id === costId);
+    if (idx > -1) {
+       const oldCost = db.costs[idx];
+       // Revert old stage spent
+       let oldStage = db.stages?.find(s => s.project_id === oldCost.project_id && s.stage_name === oldCost.stage_name);
+       if (oldStage) oldStage.stage_spent -= Number(oldCost.amount);
+       
+       // Update cost
+       db.costs[idx] = { ...oldCost, ...data, amount: Number(data.amount) };
+       
+       // Add new stage spent
+       let newStage = db.stages?.find(s => s.project_id === data.project_id && s.stage_name === data.stage_name);
+       if (newStage) newStage.stage_spent = (newStage.stage_spent || 0) + Number(data.amount);
+       
+       saveDB(db);
+       return true;
+    }
+    return false;
+  },
   deleteCost: (costId) => {
     let db = getDB();
     // Revert stage spent logic
@@ -205,6 +226,16 @@ export const adminApi = {
     saveDB(db);
     return newUpdate;
   },
+  updateUpdate: (updateId, data) => {
+    let db = getDB();
+    const idx = db.updates?.findIndex(u => u.id === updateId);
+    if (idx > -1) {
+      db.updates[idx] = { ...db.updates[idx], ...data };
+      saveDB(db);
+      return true;
+    }
+    return false;
+  },
   deleteUpdate: (updateId) => {
     let db = getDB();
     db.updates = db.updates?.filter(u => u.id !== updateId) || [];
@@ -225,6 +256,16 @@ export const adminApi = {
     db.documents.push(newDoc);
     saveDB(db);
     return newDoc;
+  },
+  updateDocument: (docId, data) => {
+    let db = getDB();
+    const idx = db.documents?.findIndex(d => d.id === docId);
+    if (idx > -1) {
+      db.documents[idx] = { ...db.documents[idx], ...data };
+      saveDB(db);
+      return true;
+    }
+    return false;
   },
   deleteDocument: (docId) => {
     let db = getDB();
@@ -249,6 +290,16 @@ export const adminApi = {
     db.logs.push(newLog);
     saveDB(db);
     return newLog;
+  },
+  updateLog: (logId, data) => {
+    let db = getDB();
+    const idx = db.logs?.findIndex(l => l.id === logId);
+    if (idx > -1) {
+      db.logs[idx] = { ...db.logs[idx], ...data };
+      saveDB(db);
+      return true;
+    }
+    return false;
   },
   deleteLog: (logId) => {
     let db = getDB();

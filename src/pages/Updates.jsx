@@ -6,13 +6,14 @@ import Modal from '../components/Modal';
 import FormInput from '../components/FormInput';
 
 const Updates = () => {
-  const { user } = useAuth();
+  const { user, canAccess } = useAuth();
   const [projects, setProjects] = useState([]);
   const [selectedProjectId, setSelectedProjectId] = useState('all');
   const [updates, setUpdates] = useState([]);
   const [stages, setStages] = useState([]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
   const [isAllSelectedForPost, setIsAllSelectedForPost] = useState(false);
   
   const [newUpdate, setNewUpdate] = useState({ project_id: '', stage_name: '', description: '', image_url: '', date: new Date().toISOString().split('T')[0] });
@@ -44,23 +45,30 @@ const Updates = () => {
   };
 
   const handleOpenModal = () => {
+    setEditingItem(null);
     if (selectedProjectId === 'all' && projects.length > 0) {
-      setNewUpdate(prev => ({ ...prev, project_id: projects[0].project_id }));
+      setNewUpdate({ project_id: projects[0].project_id, stage_name: '', description: '', image_url: '', date: new Date().toISOString().split('T')[0] });
       setIsAllSelectedForPost(true);
       fetchStagesForModal(projects[0].project_id);
     } else {
-      setNewUpdate(prev => ({ ...prev, project_id: selectedProjectId }));
+      setNewUpdate({ project_id: selectedProjectId, stage_name: '', description: '', image_url: '', date: new Date().toISOString().split('T')[0] });
       setIsAllSelectedForPost(false);
       fetchStagesForModal(selectedProjectId);
     }
     setIsModalOpen(true);
   };
 
+  const handleOpenEdit = (item) => {
+    setEditingItem(item);
+    setNewUpdate({ ...item });
+    fetchStagesForModal(item.project_id);
+    setIsModalOpen(true);
+  };
+
   const fetchStagesForModal = (pid) => {
-    if (!pid) return;
+    if (!pid || pid === 'all') return;
     const stg = adminApi.getStages(pid).stages;
     setStages(stg);
-    if(stg.length > 0) setNewUpdate(prev => ({ ...prev, stage_name: stg[0].stage_name }));
   };
 
   const handleProjectChangeInModal = (pid) => {
@@ -68,20 +76,25 @@ const Updates = () => {
     fetchStagesForModal(pid);
   };
 
-  const handleAddUpdate = (e) => {
+  const handleSaveUpdate = (e) => {
     e.preventDefault();
-    adminApi.addUpdate(newUpdate.project_id, {
-      stage_name: newUpdate.stage_name,
-      description: newUpdate.description,
-      image_url: newUpdate.image_url,
-      date: newUpdate.date,
-      added_by: user.user_id
-    });
+    
+    if (editingItem) {
+      adminApi.updateUpdate(editingItem.id, newUpdate);
+      window.showToast('Update modified successfully');
+    } else {
+      adminApi.addUpdate(newUpdate.project_id, {
+        stage_name: newUpdate.stage_name,
+        description: newUpdate.description,
+        image_url: newUpdate.image_url,
+        date: newUpdate.date,
+        added_by: user.user_id
+      });
+      window.showToast('Site update posted successfully');
+    }
     
     fetchUpdates();
     setIsModalOpen(false);
-    setNewUpdate({ ...newUpdate, description: '', image_url: '' }); // keep project and stage, clear text
-    window.showToast('Site update posted successfully');
   };
 
   const handleDelete = (id) => {
@@ -116,14 +129,14 @@ const Updates = () => {
                </select>
              </div>
            )}
-           {canAccess('edit') && <button className="btn-primary" style={{ padding: '10px 20px', height: '41px' }} onClick={handleOpenModal}>+ Post Update</button>}
+           {canAccess('updates') && <button className="btn-primary" style={{ padding: '10px 20px', height: '41px' }} onClick={handleOpenModal}>+ Post Update</button>}
         </div>
       </div>
 
-      <DataTable columns={columns} data={updates} onDelete={handleDelete} />
+      <DataTable columns={columns} data={updates} onDelete={handleDelete} onEdit={handleOpenEdit} />
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Post Site Update">
-        <form onSubmit={handleAddUpdate}>
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingItem ? 'Edit Site Update' : 'Post Site Update'}>
+        <form onSubmit={handleSaveUpdate}>
            <FormInput 
              label="Project" 
              type="select" 
@@ -131,6 +144,7 @@ const Updates = () => {
              onChange={e => handleProjectChangeInModal(e.target.value)} 
              options={projects.map(p => ({value: p.project_id, label: p.project_name}))} 
              required 
+             disabled={!!editingItem}
            />
            <FormInput 
              label="Related Stage" 
@@ -163,7 +177,7 @@ const Updates = () => {
            />
            <div className="modal-actions">
              <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
-             <button type="submit" className="btn-primary">Publish Update</button>
+             <button type="submit" className="btn-primary">{editingItem ? 'Update Post' : 'Publish Update'}</button>
            </div>
         </form>
       </Modal>
