@@ -7,8 +7,8 @@ import { useNavigate } from 'react-router-dom';
 // feature is added. It auto-renders for all role views.
 // ============================================================
 
-const APP_VERSION = 'v2.2 — Enterprise Edition';
-const LAST_UPDATED = '03 May 2026';
+const APP_VERSION = 'v2.2.1 — Enterprise Edition';
+const LAST_UPDATED = '03 May 2026 (1:38 PM)';
 
 const ALL_FEATURES = [
   // Module, path, icon, description, who_can_access[]
